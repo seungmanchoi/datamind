@@ -59,6 +59,24 @@ export const AgentState = Annotation.Root({
   }),
 
   /**
+   * 쿼리 타입 (SQL vs Semantic Search)
+   * Router Agent가 결정
+   */
+  queryType: Annotation<'sql' | 'semantic' | null>({
+    reducer: (current, update) => update ?? current,
+    default: () => null,
+  }),
+
+  /**
+   * Semantic Search 결과
+   * SemanticSearchTool이 반환한 데이터
+   */
+  semanticResults: Annotation<Record<string, unknown>[] | null>({
+    reducer: (current, update) => update ?? current,
+    default: () => null,
+  }),
+
+  /**
    * 추가 메타데이터
    * 실행 시간, 쿼리 타입, 사용된 테이블 등
    */

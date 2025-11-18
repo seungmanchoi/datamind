@@ -11,10 +11,10 @@ export async function insightSummarizerNode(
   state: AgentStateType,
   config?: RunnableConfig,
 ): Promise<Partial<AgentStateType>> {
-  const { input, sqlQuery, queryResult } = state;
+  const { input, queryType, sqlQuery, queryResult, semanticResults } = state;
 
-  // 쿼리 결과가 없으면 에러
-  if (!queryResult || !sqlQuery) {
+  // SQL 또는 Semantic Search 결과가 있는지 확인
+  if (!queryResult && !semanticResults) {
     return {
       error: 'No query result to summarize',
     };
@@ -24,8 +24,17 @@ export async function insightSummarizerNode(
   const chatModel = config?.configurable?.chatModel as BedrockChat;
 
   try {
-    // 인사이트 생성 프롬프트
-    const prompt = buildInsightPrompt(input, sqlQuery, queryResult);
+    // 인사이트 생성 프롬프트 (SQL 또는 Semantic Search)
+    let prompt: string;
+    if (queryType === 'semantic' && semanticResults) {
+      prompt = buildSemanticInsightPrompt(input, semanticResults);
+    } else if (sqlQuery && queryResult) {
+      prompt = buildInsightPrompt(input, sqlQuery, queryResult);
+    } else {
+      return {
+        error: 'Invalid state: no valid results to summarize',
+      };
+    }
 
     // LLM을 통해 인사이트 생성
     const response = await chatModel.invoke(prompt);
@@ -67,6 +76,34 @@ Instructions:
 5. If there are notable findings (anomalies, top performers, etc.), mention them
 6. Keep the response conversational and easy to understand
 7. Format the response in a structured way if there are multiple insights
+
+Generate the insight summary:`;
+}
+
+/**
+ * Semantic Search 인사이트 프롬프트
+ */
+function buildSemanticInsightPrompt(userQuery: string, semanticResults: Record<string, unknown>[]): string {
+  const resultSummary = formatQueryResult(semanticResults);
+
+  return `You are a data analyst providing insights from semantic search results.
+
+Original User Question:
+"${userQuery}"
+
+Semantic Search Method: Vector similarity search using embeddings
+
+Search Results:
+${resultSummary}
+
+Instructions:
+1. Analyze the semantic search results carefully
+2. Provide a clear, concise summary in natural language (Korean)
+3. Explain why these products are similar or relevant to the query
+4. Highlight common features or characteristics among the results
+5. Mention similarity scores if they are significantly different
+6. Keep the response conversational and easy to understand
+7. Suggest which products might be most relevant
 
 Generate the insight summary:`;
 }

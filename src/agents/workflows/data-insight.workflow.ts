@@ -1,24 +1,42 @@
 import { END, START, StateGraph } from '@langchain/langgraph';
 
-import { insightSummarizerNode, sqlExecutorNode, textToSqlNode } from '../nodes';
-import { AgentState } from '../state';
+import { insightSummarizerNode, routerNode, semanticSearchNode, sqlExecutorNode, textToSqlNode } from '../nodes';
+import { AgentState, AgentStateType } from '../state';
 
 /**
  * Data Insight Workflow
- * Text-to-SQL → SQL Execution → Insight Summarization 순서로 실행되는 워크플로우
+ * Router → [Text-to-SQL or Semantic Search] → Insight Summarization
+ * SQL과 벡터 검색을 자동으로 선택하는 워크플로우
  */
 export function createDataInsightWorkflow() {
   // StateGraph 생성
   const workflow = new StateGraph(AgentState)
     // Node 추가
+    .addNode('router', routerNode)
     .addNode('textToSql', textToSqlNode)
     .addNode('sqlExecutor', sqlExecutorNode)
+    .addNode('semanticSearch', semanticSearchNode)
     .addNode('insightSummarizer', insightSummarizerNode)
 
-    // Edge 연결: 선형 워크플로우
-    .addEdge(START, 'textToSql')
+    // 시작: Router로 진입
+    .addEdge(START, 'router')
+
+    // Router에서 조건부 분기
+    .addConditionalEdges('router', (state: AgentStateType) => {
+      if (state.queryType === 'semantic') {
+        return 'semanticSearch';
+      }
+      return 'textToSql';
+    })
+
+    // SQL 경로: Text-to-SQL → SQL Executor → Summarizer
     .addEdge('textToSql', 'sqlExecutor')
     .addEdge('sqlExecutor', 'insightSummarizer')
+
+    // Semantic Search 경로: Semantic Search → Summarizer
+    .addEdge('semanticSearch', 'insightSummarizer')
+
+    // 종료
     .addEdge('insightSummarizer', END);
 
   // Compiled graph 반환

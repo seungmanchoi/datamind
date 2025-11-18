@@ -275,15 +275,28 @@ curl -X POST http://localhost:3000/query \
 
 ---
 
-### 🔄 Phase 3: Vector Search & Embeddings
-**기간**: 6일 | **상태**: 🔜 예정
+### ✅ Phase 3: Vector Search & Embeddings
+**기간**: 6일 | **상태**: ✅ 완료
 
-- [ ] Amazon OpenSearch Serverless 구성
-- [ ] Titan Embeddings 연동
-- [ ] 상품/옵션/매장 데이터 벡터화
-- [ ] 의미 기반 검색 API 구현
-- [ ] Hybrid Search (키워드 + 벡터)
-- [ ] 검색 결과 랭킹 알고리즘
+- [x] Amazon Titan Embeddings 연동 (EmbeddingsService)
+- [x] OpenSearch Serverless 구성 및 k-NN 인덱스 설정
+- [x] 상품 데이터 벡터화 및 인덱싱 파이프라인
+- [x] 의미 기반 검색 API 구현 (SemanticSearchService)
+- [x] Hybrid Search (벡터 + 키워드)
+- [x] Router Agent를 통한 자동 쿼리 타입 선택 (SQL vs Semantic)
+- [x] LangGraph 워크플로우에 Semantic Search 통합
+
+**주요 API**:
+- `POST /indexing/products` - 전체 상품 벡터 인덱싱
+- `POST /indexing/products/:id` - 특정 상품 재인덱싱
+- `GET /search/semantic?q=query&k=10` - 의미 기반 검색
+- `GET /search/hybrid?q=query&k=10` - 하이브리드 검색
+- `GET /search/similar/:id?k=10` - 유사 상품 검색
+
+**워크플로우 개선**:
+- Router Node가 질의 분석하여 SQL vs Semantic Search 자동 선택
+- Semantic Search 키워드 감지: "같은", "유사한", "비슷한", "추천", "찾아줘" 등
+- 양방향 경로: Text-to-SQL → SQL Executor 또는 Semantic Search → Insight Summarizer
 
 **상세 가이드**: [docs/phases/03-Vector-Search.md](./docs/phases/03-Vector-Search.md)
 

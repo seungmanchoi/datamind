@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 
+import { SearchService } from '@/modules/search/search.service';
+
 import { createBedrockChatModel } from './config/langchain.config';
 import { initializeState } from './state';
 import { SchemaRetrievalTool, SqlExecutorTool } from './tools';
@@ -14,7 +16,10 @@ export class AgentService {
   private readonly sqlExecutor: SqlExecutorTool;
   private readonly schemaRetrieval: SchemaRetrievalTool;
 
-  constructor(@InjectDataSource() private readonly dataSource: DataSource) {
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    private readonly searchService: SearchService,
+  ) {
     this.chatModel = createBedrockChatModel();
     this.sqlExecutor = new SqlExecutorTool(dataSource);
     this.schemaRetrieval = new SchemaRetrievalTool(dataSource);
@@ -89,6 +94,7 @@ export class AgentService {
           chatModel: this.chatModel,
           sqlExecutor: this.sqlExecutor,
           schemaRetrieval: this.schemaRetrieval,
+          searchService: this.searchService,
         },
       });
 
@@ -97,8 +103,10 @@ export class AgentService {
       // 결과 반환
       return {
         input: result.input,
+        queryType: result.queryType,
         sqlQuery: result.sqlQuery,
         queryResult: result.queryResult,
+        semanticResults: result.semanticResults,
         summary: result.summary,
         error: result.error,
         metadata: result.metadata,

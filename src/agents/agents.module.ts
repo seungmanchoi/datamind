@@ -1,9 +1,12 @@
 import { Module } from '@nestjs/common';
 
+import { SearchModule } from '@/modules/search/search.module';
+
 import { AgentController } from './agent.controller';
 import { AgentService } from './agent.service';
 
 @Module({
+  imports: [SearchModule],
   controllers: [AgentController],
   providers: [AgentService],
   exports: [AgentService],
