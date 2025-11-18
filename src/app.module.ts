@@ -25,7 +25,7 @@ import { SearchModule } from './modules/search/search.module';
       load: [opensearchConfig],
     }),
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', '..', 'public'),
+      rootPath: join(__dirname, '..', '..', 'frontend', 'dist'),
       exclude: ['/api*', '/agent*', '/search*', '/indexing*'],
     }),
     SecretsModule,

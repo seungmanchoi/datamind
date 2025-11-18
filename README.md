@@ -340,24 +340,144 @@ curl -X POST http://localhost:3000/query \
 
 ---
 
-### 🔄 Phase 6: Frontend Dashboard & Data Visualization
-**기간**: 6일 | **상태**: 🔜 예정
+### ✅ Phase 6: Frontend Dashboard (React + Vite)
+**기간**: 6일 | **상태**: ✅ 완료
 
-- [ ] Next.js 14 App Router 프로젝트 설정
-- [ ] 자연어 쿼리 인터페이스
-- [ ] 데이터 시각화 (Line, Bar, Pie, Table, Heatmap)
-- [ ] 드래그 앤 드롭 대시보드 위젯
-- [ ] WebSocket 실시간 데이터 업데이트
-- [ ] MySQL MCP 기반 AI Insights
-- [ ] 반응형 디자인 및 성능 최적화
+- [x] Vite + React + TypeScript 프로젝트 설정
+- [x] Tailwind CSS 4.x UI 구성
+- [x] 자연어 쿼리 인터페이스 (AI Agent 연동)
+- [x] Recharts 데이터 시각화 (Bar, Line, Pie)
+- [x] TanStack Query 상태 관리
+- [x] 시맨틱 검색 UI (의미 기반 / 하이브리드)
+- [x] 히스토리 관리 및 메트릭 대시보드
+- [x] 반응형 디자인 및 프로덕션 빌드
 
 **주요 기능**:
-- 자연어 → SQL → 차트 자동 시각화
-- Claude가 MySQL MCP로 직접 DB 분석
-- 이상치 탐지, 트렌드 분석, 추천 액션
-- 커스텀 대시보드 구성 및 저장
+- 자연어 질의 → AI Agent → SQL 실행 → 차트/테이블 시각화
+- 인터랙티브 차트 전환 (Bar/Line/Pie)
+- 의미 기반 상품 검색 (OpenSearch Vector Search)
+- 질의 히스토리 저장/재실행 (LocalStorage)
+- 실시간 API 상태 모니터링 및 메트릭
+
+**개발 명령어**:
+```bash
+# 프론트엔드만 개발
+yarn dev:frontend
+
+# 프론트엔드 + 백엔드 빌드
+yarn build:all
+
+# 프로덕션 실행
+yarn start:prod
+```
+
+**접속 방법**: `http://localhost:3000` (NestJS가 프론트엔드 빌드 파일 제공)
 
 **상세 가이드**: [docs/phases/06-Frontend-Dashboard.md](./docs/phases/06-Frontend-Dashboard.md)
+
+---
+
+### ✅ Phase 7: AI-Enhanced Query Experience
+**기간**: 6일 | **상태**: ✅ 완료
+
+- [x] LLM 기반 질의 분석 (불충분한 질의 감지)
+- [x] 동적 추가 질문 생성 (기간, 개수, 필터, 그룹화)
+- [x] AI 자동 시각화 선택 (차트 vs 테이블)
+- [x] 풍부한 AI 인사이트 생성 (6가지 유형)
+- [x] 이모지 포함 대화형 UI
+- [x] 프롬프트 템플릿 엔지니어링
+
+**주요 기능**:
+
+#### 1. 질의 분석 및 추가 질문
+사용자의 질의가 불충분할 때 AI가 자동으로 감지하고 추가 질문을 생성합니다.
+
+**예시**:
+```
+사용자: "가장 많이 팔린 상품은?"
+  ↓
+AI 분석: "기간과 개수가 명시되지 않음"
+  ↓
+추가 질문 모달:
+  - 어떤 기간? [오늘, 이번 주, 이번 달, 최근 30일, 올해]
+  - 상위 몇 개? [1개, 3개, 5개, 10개]
+  ↓
+재질의: "가장 많이 팔린 상품은? (최근 30일, 10개)"
+```
+
+#### 2. 자동 시각화 선택
+AI가 데이터 특성을 분석하여 최적의 시각화 방법을 추천합니다.
+
+**시각화 옵션**:
+- `chart`: Bar/Line/Pie 차트만 표시
+- `table`: 테이블만 표시
+- `both`: 차트 + 테이블 함께 표시
+
+**선택 기준**:
+- 시간 추이 → Line Chart
+- 카테고리 비교 → Bar Chart
+- 비율/구성 → Pie Chart
+- 정확한 수치 필요 → Table
+- 시각적 + 정확한 수치 → Both
+
+#### 3. 풍부한 AI 인사이트
+
+6가지 유형의 인사이트를 자동 생성합니다:
+
+```typescript
+{
+  summary: "전체 결과를 1-2문장으로 요약",
+  keyFindings: [
+    "⭐ 베스트셀러 1위는 상품 A입니다",
+    "📈 주말 매출이 평일 대비 35% 높습니다",
+    "🕐 계절성 상품이 상위권을 차지하고 있습니다",
+    "💡 상위 5개 상품이 전체 매출의 60%를 차지합니다"
+  ],
+  comparison: "1위와 10위의 판매량 격차가 2배입니다",
+  trend: "계절성 상품 기획과 재고 관리의 중요성이 드러납니다",
+  anomaly: "⚠️ 특정 상품의 판매량이 평균 대비 3배 높습니다",
+  recommendation: "💡 인기 상품 라인업 확대 및 번들 상품 구성을 고려하세요"
+}
+```
+
+#### 4. 대화형 UI 개선
+
+**추가 질문 모달**:
+- Sparkles 아이콘으로 AI 느낌 강조
+- 드롭다운으로 옵션 선택
+- 기본값 자동 설정
+- "다시 질의하기" 버튼으로 재질의
+
+**인사이트 표시**:
+- Gradient 배경 (purple-50 to pink-50)
+- 이모지로 시각적 강조
+- 6가지 섹션으로 구조화
+- 아이콘과 색상으로 구분
+
+**기술 스택**:
+- **Backend**: Bedrock Claude 3.5 Sonnet (프롬프트 엔지니어링)
+- **Frontend**: React + TypeScript + Tailwind CSS 4.x
+- **프롬프트 템플릿**: query-analysis, insight-generation, visualization-selection
+
+**개발 명령어**:
+```bash
+# 백엔드 개발 서버
+yarn start:dev
+
+# 프론트엔드 개발 서버
+cd frontend && yarn dev
+
+# 통합 테스트
+# 1. 완전한 질의: "최근 30일간 가장 많이 팔린 상품 Top 10은?"
+# 2. 불완전한 질의: "가장 많이 팔린 상품은?" → 추가 질문 → 재질의
+```
+
+**테스트 결과**:
+- ✅ 질의 분석 및 추가 질문 생성
+- ✅ 추가 질문 모달 UI 및 재질의
+- ✅ AI 인사이트 6가지 유형 생성
+- ✅ 자동 시각화 선택 (both: Bar Chart + Table)
+- ✅ 이모지 포함 화려한 UI
 
 ---
 
