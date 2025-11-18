@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { join } from 'path';
 
 import { AgentsModule } from './agents/agents.module';
 import { AppController } from './app.controller';
@@ -21,6 +23,10 @@ import { SearchModule } from './modules/search/search.module';
       isGlobal: true,
       envFilePath: '.env',
       load: [opensearchConfig],
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'public'),
+      exclude: ['/api*', '/agent*', '/search*', '/indexing*'],
     }),
     SecretsModule,
     TypeOrmModule.forRootAsync({

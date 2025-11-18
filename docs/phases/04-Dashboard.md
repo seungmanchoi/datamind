@@ -3,19 +3,21 @@
 ## 📋 작업 정의 및 목표 (What & Why)
 
 ### What
-관리자가 자연어로 질의하고 인사이트를 시각화할 수 있는 대시보드 MVP를 구축합니다. QuickSight 또는 Streamlit을 사용하여 데이터 시각화 및 실시간 모니터링 기능을 제공합니다.
+관리자가 자연어로 질의하고 인사이트를 시각화할 수 있는 웹 대시보드 MVP를 구축합니다. NestJS 서버에서 정적 파일을 제공하고, HTML/CSS/JavaScript를 사용한 단일 페이지 애플리케이션(SPA)을 구현합니다.
 
 ### Why
 - 비기술 관리자도 쉽게 데이터 조회 및 분석 가능
 - AI 인사이트를 직관적으로 시각화
 - 실시간 비즈니스 메트릭 모니터링
 - 의사결정 지원을 위한 데이터 대시보드
+- NestJS 서버와 통합된 단일 애플리케이션으로 배포 간소화
 
 ### 달성 결과
 - 자연어 질의 인터페이스
-- 차트 및 그래프 자동 생성
-- 실시간 인사이트 표시
-- 저장된 질의 및 즐겨찾기 기능
+- 시맨틱 검색 UI
+- 질의 히스토리 관리
+- 실시간 메트릭 대시보드
+- 반응형 디자인
 
 ---
 
@@ -23,542 +25,384 @@
 
 ### 사용 기술 스택
 
-**Option A: Amazon QuickSight**
-- QuickSight Embedded Analytics
-- QuickSight API for custom integration
-- Server-side rendering
+**Frontend: Vanilla JavaScript + HTML + CSS**
+- HTML5
+- Modern CSS (Flexbox, Grid)
+- Vanilla JavaScript (ES6+)
+- Font Awesome Icons
+- LocalStorage for persistence
 
-**Option B: Streamlit (권장 - MVP 빠른 개발)**
-- Streamlit 1.30+
-- Plotly/Altair for charts
-- Python FastAPI backend
-- WebSocket for real-time updates
+**Backend: NestJS**
+- @nestjs/serve-static 모듈
+- public/ 디렉토리에서 정적 파일 제공
+- REST API 통합
 
-**Frontend (Custom UI - Optional)**
-- React 18 + TypeScript
-- Recharts or Chart.js
-- TanStack Query (React Query)
-- Tailwind CSS
+### 장점
+- 별도의 빌드 프로세스 불필요
+- NestJS와 같은 서버에서 실행 (포트 3000)
+- 빠른 개발 및 배포
+- 의존성 최소화
 
 ### 제약사항
-- QuickSight: 비용이 높음, 사용자당 과금
-- Streamlit: 프로덕션 스케일링 제한적
-- Custom React: 개발 시간 길지만 유연성 높음
+- 복잡한 상태 관리는 LocalStorage 활용
+- 서버 사이드 렌더링 없음 (CSR)
+- 대규모 데이터 처리는 백엔드에서 수행
 
 ---
 
 ## 📝 Task 목록
 
-### Task 4.1: 대시보드 기술 스택 선택 및 설정
+### Task 4.1: NestJS 정적 파일 서빙 설정
 
 #### What & Why
-MVP를 위한 최적의 대시보드 솔루션을 선택하고 초기 설정을 완료합니다.
+NestJS 서버에서 정적 파일(HTML/CSS/JavaScript)을 제공할 수 있도록 설정합니다.
 
 #### Tech Spec
-**권장: Streamlit** (빠른 MVP 개발)
-- Streamlit 1.30+
-- Python 3.10+
-- NestJS API와 연동
+- @nestjs/serve-static 모듈 사용
+- public/ 디렉토리에서 파일 제공
+- API 엔드포인트와 충돌 방지
 
 #### How
 
-1. Streamlit 프로젝트 생성:
+1. 패키지 설치:
 ```bash
-mkdir dashboard
-cd dashboard
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install streamlit plotly pandas requests
+pnpm add @nestjs/serve-static
 ```
 
-2. `dashboard/app.py` 생성:
-```python
-import streamlit as st
-import requests
-import plotly.express as px
-import pandas as pd
+2. `src/app.module.ts` 수정:
+```typescript
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
-# Configuration
-API_BASE_URL = "http://localhost:3000"
-
-st.set_page_config(
-    page_title="NDMarket AI Insights",
-    page_icon="🧠",
-    layout="wide",
-)
-
-st.title("🧠 NDMarket AI Insight Platform")
-st.markdown("자연어로 데이터를 조회하고 인사이트를 얻으세요")
-
-# Initialize session state
-if 'history' not in st.session_state:
-    st.session_state.history = []
+@Module({
+  imports: [
+    // ... other imports
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'public'),
+      exclude: ['/api*', '/agent*', '/search*', '/indexing*'],
+    }),
+    // ... other imports
+  ],
+})
+export class AppModule {}
 ```
 
-3. 실행 스크립트:
-```bash
-streamlit run app.py
-```
+3. `public/` 디렉토리 생성
 
 #### Acceptance Criteria
-- [ ] Streamlit 앱 실행 성공
-- [ ] NestJS API 연결 테스트
-- [ ] 기본 레이아웃 구성 완료
-- [ ] 브라우저에서 localhost:8501 접속 가능
+- [x] @nestjs/serve-static 패키지 설치
+- [x] ServeStaticModule 설정 완료
+- [x] public/ 디렉토리 생성
+- [x] API 엔드포인트와 정적 파일 경로 분리
 
 ---
 
-### Task 4.2: 자연어 질의 인터페이스 구현
+### Task 4.2: 대시보드 HTML/CSS 레이아웃 구현
 
 #### What & Why
-사용자가 자연어로 질의를 입력하고 AI Agent에게 전달하는 UI를 구현합니다.
+대시보드의 기본 레이아웃과 스타일을 HTML/CSS로 구현합니다.
 
 #### Tech Spec
-- Streamlit chat interface
-- NestJS `/agents/query` API 호출
-- Loading states 및 error handling
+- Semantic HTML5
+- Modern CSS (Flexbox, Grid)
+- 반응형 디자인 (모바일 대응)
+- Font Awesome 아이콘
 
 #### How
 
-1. `dashboard/app.py`에 질의 인터페이스 추가:
-```python
-import streamlit as st
-import requests
-import json
+1. `public/index.html` 생성:
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NDMarket AI Insight Platform</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <!-- Header with Navigation -->
+  <header class="header">
+    <!-- Navigation buttons -->
+  </header>
 
-def query_agent(user_query: str) -> dict:
-    """Call NestJS Agent API"""
-    try:
-        response = requests.post(
-            f"{API_BASE_URL}/agents/query",
-            json={"query": user_query},
-            timeout=30
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        st.error(f"API 호출 실패: {str(e)}")
-        return None
+  <!-- Main Content -->
+  <main class="main">
+    <!-- AI Query Page -->
+    <!-- Semantic Search Page -->
+    <!-- History Page -->
+    <!-- Metrics Page -->
+  </main>
 
-# Chat interface
-st.subheader("💬 질의하기")
+  <!-- Footer -->
+  <footer class="footer">
+    <!-- Footer content -->
+  </footer>
 
-with st.form(key="query_form"):
-    user_input = st.text_input(
-        "질문을 입력하세요",
-        placeholder="예: 지난주 신규 입점 마켓 수는?"
-    )
-    submit_button = st.form_submit_button("분석하기")
+  <script src="/app.js"></script>
+</body>
+</html>
+```
 
-if submit_button and user_input:
-    with st.spinner("분석 중..."):
-        result = query_agent(user_input)
+2. `public/styles.css` 생성:
+```css
+/* CSS Variables for theming */
+:root {
+  --primary-color: #2563eb;
+  --secondary-color: #10b981;
+  --bg-color: #f8fafc;
+  /* ... other variables */
+}
 
-        if result:
-            # Add to history
-            st.session_state.history.append({
-                'query': user_input,
-                'result': result
-            })
+/* Layout styles */
+.header { /* ... */ }
+.main { /* ... */ }
+.footer { /* ... */ }
 
-            # Display results
-            st.success("분석 완료!")
-
-            # Show SQL
-            with st.expander("생성된 SQL 쿼리"):
-                st.code(result['generatedSQL'], language='sql')
-
-            # Show summary
-            st.markdown("### 📊 분석 결과")
-            st.info(result['summary'])
-
-            # Show insights
-            if result.get('insights'):
-                st.markdown("### 💡 주요 인사이트")
-                for insight in result['insights']:
-                    st.markdown(f"- {insight}")
-
-            # Show execution time
-            st.caption(f"실행 시간: {result['executionTime']}ms")
+/* Component styles */
+.query-input { /* ... */ }
+.btn { /* ... */ }
+/* ... */
 ```
 
 #### Acceptance Criteria
-- [ ] 자연어 질의 입력 폼 작동
-- [ ] NestJS Agent API 호출 성공
-- [ ] SQL, 요약, 인사이트 표시
-- [ ] Loading state 표시
-- [ ] 에러 처리 구현
+- [x] HTML 구조 완성 (header, main, footer)
+- [x] CSS 스타일링 완료
+- [x] 반응형 디자인 적용
+- [x] Font Awesome 아이콘 사용
+- [x] 4개 페이지 레이아웃 (질의, 검색, 히스토리, 메트릭)
 
 ---
 
-### Task 4.3: 데이터 시각화 컴포넌트 구현
+### Task 4.3: 자연어 질의 인터페이스 구현 (JavaScript)
 
 #### What & Why
-SQL 결과를 차트, 그래프, 테이블로 자동 시각화합니다.
+사용자가 자연어로 질의를 입력하고 AI Agent에게 전달하는 UI를 JavaScript로 구현합니다.
 
 #### Tech Spec
-- Plotly for interactive charts
-- Pandas for data manipulation
-- Auto-chart selection based on data type
+- Fetch API for HTTP requests
+- Event handling (input, button click)
+- DOM manipulation for result display
+- Error handling and loading states
 
 #### How
 
-1. `dashboard/visualizer.py` 생성:
-```python
-import plotly.express as px
-import plotly.graph_objects as go
-import pandas as pd
-from typing import List, Dict, Any
+1. `public/app.js`에 질의 처리 로직 추가:
+```javascript
+async function handleQuerySubmit() {
+  const query = document.getElementById('query-input').value;
 
-def auto_visualize(data: List[Dict[str, Any]], query: str = ""):
-    """Automatically select and create appropriate visualization"""
-    if not data:
-        return None
+  // Show loading
+  document.getElementById('query-loading').style.display = 'block';
 
-    df = pd.DataFrame(data)
+  try {
+    const response = await fetch('/agent/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
 
-    # Detect visualization type
-    numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns
-    categorical_cols = df.select_dtypes(include=['object']).columns
+    const data = await response.json();
+    displayQueryResult(data);
+  } catch (error) {
+    displayError(error.message);
+  } finally {
+    document.getElementById('query-loading').style.display = 'none';
+  }
+}
 
-    # Bar chart for categorical + numeric
-    if len(categorical_cols) >= 1 and len(numeric_cols) >= 1:
-        return create_bar_chart(df, categorical_cols[0], numeric_cols[0])
-
-    # Line chart for time series
-    if any('date' in col.lower() or 'time' in col.lower() for col in df.columns):
-        time_col = next((col for col in df.columns if 'date' in col.lower() or 'time' in col.lower()), None)
-        if time_col and len(numeric_cols) >= 1:
-            return create_line_chart(df, time_col, numeric_cols[0])
-
-    # Pie chart for counts
-    if len(df) <= 10 and len(categorical_cols) >= 1:
-        return create_pie_chart(df, categorical_cols[0])
-
-    # Default: table
-    return None
-
-def create_bar_chart(df: pd.DataFrame, x_col: str, y_col: str):
-    """Create interactive bar chart"""
-    fig = px.bar(
-        df,
-        x=x_col,
-        y=y_col,
-        title=f"{y_col} by {x_col}",
-        text=y_col,
-    )
-    fig.update_traces(texttemplate='%{text:.2s}', textposition='outside')
-    fig.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
-    return fig
-
-def create_line_chart(df: pd.DataFrame, x_col: str, y_col: str):
-    """Create interactive line chart"""
-    fig = px.line(
-        df,
-        x=x_col,
-        y=y_col,
-        title=f"{y_col} over {x_col}",
-        markers=True,
-    )
-    return fig
-
-def create_pie_chart(df: pd.DataFrame, label_col: str):
-    """Create pie chart for categorical distribution"""
-    value_counts = df[label_col].value_counts()
-    fig = px.pie(
-        values=value_counts.values,
-        names=value_counts.index,
-        title=f"Distribution of {label_col}",
-    )
-    return fig
-```
-
-2. `app.py`에 시각화 추가:
-```python
-from visualizer import auto_visualize
-
-# ... in query result display section
-
-# Visualize data
-if result.get('queryResults'):
-    st.markdown("### 📈 시각화")
-
-    fig = auto_visualize(result['queryResults'], user_input)
-    if fig:
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        # Fallback: show table
-        df = pd.DataFrame(result['queryResults'])
-        st.dataframe(df, use_container_width=True)
+function displayQueryResult(data) {
+  // Display insight message
+  // Display SQL query
+  // Display table results
+  // Display semantic search results
+}
 ```
 
 #### Acceptance Criteria
-- [ ] Bar chart 자동 생성 (categorical + numeric)
-- [ ] Line chart 자동 생성 (time series)
-- [ ] Pie chart 자동 생성 (distribution)
-- [ ] 데이터 테이블 표시 (fallback)
-- [ ] 인터랙티브 차트 작동 (zoom, hover)
+- [x] 질의 입력 폼 작동
+- [x] POST /agent/query API 호출
+- [x] 로딩 상태 표시
+- [x] 결과 표시 (인사이트, SQL, 테이블, 유사 상품)
+- [x] 에러 처리 구현
 
 ---
 
-### Task 4.4: 질의 히스토리 및 즐겨찾기
+### Task 4.4: 시맨틱 검색 UI 구현
 
 #### What & Why
-과거 질의를 저장하고 재실행할 수 있는 기능을 구현합니다.
+Vector Search 기능을 사용한 상품 검색 UI를 구현합니다.
 
 #### Tech Spec
-- Session state for history
-- Local storage (optional)
-- Rerun previous queries
+- 의미 기반 검색 / 하이브리드 검색 선택
+- 검색 결과 카드 레이아웃
+- 유사도 스코어 표시
 
 #### How
 
-1. `app.py`에 히스토리 사이드바 추가:
-```python
-# Sidebar for history
-with st.sidebar:
-    st.header("📜 질의 히스토리")
+1. `app.js`에 검색 로직 추가:
+```javascript
+async function handleSearchSubmit() {
+  const query = document.getElementById('search-input').value;
+  const topK = document.getElementById('search-topk').value;
+  const searchType = document.querySelector('input[name="search-type"]:checked').value;
 
-    if st.session_state.history:
-        for idx, item in enumerate(reversed(st.session_state.history)):
-            with st.expander(f"{idx + 1}. {item['query'][:30]}..."):
-                st.caption(f"실행 시간: {item['result']['executionTime']}ms")
-                st.code(item['result']['generatedSQL'], language='sql')
+  const endpoint = searchType === 'semantic'
+    ? '/search/semantic'
+    : '/search/hybrid';
 
-                if st.button(f"다시 실행", key=f"rerun_{idx}"):
-                    # Rerun query
-                    with st.spinner("재실행 중..."):
-                        result = query_agent(item['query'])
-                        if result:
-                            st.rerun()
-    else:
-        st.info("아직 질의 히스토리가 없습니다")
+  const response = await fetch(`${endpoint}?q=${query}&k=${topK}`);
+  const data = await response.json();
 
-    # Clear history
-    if st.button("히스토리 삭제"):
-        st.session_state.history = []
-        st.rerun()
-```
+  displaySearchResult(data);
+}
 
-2. 즐겨찾기 기능 추가:
-```python
-# Add favorites to session state
-if 'favorites' not in st.session_state:
-    st.session_state.favorites = []
-
-# In result display
-col1, col2 = st.columns([3, 1])
-with col1:
-    st.info(result['summary'])
-with col2:
-    if st.button("⭐ 즐겨찾기"):
-        st.session_state.favorites.append({
-            'query': user_input,
-            'result': result
-        })
-        st.success("즐겨찾기에 추가됨")
-
-# Favorites in sidebar
-with st.sidebar:
-    st.header("⭐ 즐겨찾기")
-
-    if st.session_state.favorites:
-        for idx, fav in enumerate(st.session_state.favorites):
-            if st.button(fav['query'][:30], key=f"fav_{idx}"):
-                # Load favorite
-                st.session_state.selected_favorite = fav
-                st.rerun()
+function displaySearchResult(data) {
+  // Render search result cards
+  // Show similarity scores
+  // Display product info
+}
 ```
 
 #### Acceptance Criteria
-- [ ] 질의 히스토리 사이드바 표시
-- [ ] 과거 질의 재실행 가능
-- [ ] 즐겨찾기 추가/삭제 기능
-- [ ] Session state로 데이터 유지
-- [ ] 히스토리 삭제 버튼 작동
+- [x] 검색 타입 선택 (의미 기반 / 하이브리드)
+- [x] Top K 설정 가능
+- [x] GET /search/semantic, /search/hybrid API 호출
+- [x] 검색 결과 카드 형식으로 표시
+- [x] 유사도 스코어 표시
 
 ---
 
-### Task 4.5: 실시간 메트릭 대시보드
+### Task 4.5: 질의 히스토리 및 메트릭 대시보드
 
 #### What & Why
-주요 비즈니스 메트릭을 실시간으로 모니터링하는 대시보드를 구현합니다.
+과거 질의를 저장하고 재실행할 수 있는 기능과 시스템 메트릭을 구현합니다.
 
 #### Tech Spec
-- Pre-defined metrics queries
-- Auto-refresh (optional)
-- KPI cards
+- LocalStorage for history persistence
+- Query rerun functionality
+- Metrics dashboard (query count, search count, avg response time)
 
 #### How
 
-1. `dashboard/metrics.py` 생성:
-```python
-import streamlit as st
-import requests
-from typing import Dict, Any
+1. `app.js`에 히스토리 관리 추가:
+```javascript
+// Save to LocalStorage
+function saveToLocalStorage() {
+  localStorage.setItem('ndmarket-history', JSON.stringify(state.history));
+}
 
-def fetch_metrics() -> Dict[str, Any]:
-    """Fetch key business metrics"""
-    metrics = {}
+// Load from LocalStorage
+function loadFromLocalStorage() {
+  const history = localStorage.getItem('ndmarket-history');
+  if (history) {
+    state.history = JSON.parse(history);
+  }
+}
 
-    # Total markets
-    result = query_agent("전체 마켓 수는?")
-    if result and result.get('queryResults'):
-        metrics['total_markets'] = result['queryResults'][0].get('COUNT(*)', 0)
+// Render history
+function renderHistory() {
+  const historyList = document.getElementById('history-list');
+  // Render history items with rerun and delete buttons
+}
 
-    # Total products
-    result = query_agent("전체 상품 수는?")
-    if result and result.get('queryResults'):
-        metrics['total_products'] = result['queryResults'][0].get('COUNT(*)', 0)
-
-    # New markets this week
-    result = query_agent("이번 주 신규 마켓 수는?")
-    if result and result.get('queryResults'):
-        metrics['new_markets_week'] = result['queryResults'][0].get('COUNT(*)', 0)
-
-    return metrics
-
-def display_metrics_dashboard():
-    """Display metrics as KPI cards"""
-    st.header("📊 주요 지표")
-
-    with st.spinner("메트릭 로딩 중..."):
-        metrics = fetch_metrics()
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.metric(
-            label="전체 마켓",
-            value=f"{metrics.get('total_markets', 0):,}",
-        )
-
-    with col2:
-        st.metric(
-            label="전체 상품",
-            value=f"{metrics.get('total_products', 0):,}",
-        )
-
-    with col3:
-        st.metric(
-            label="이번 주 신규 마켓",
-            value=f"{metrics.get('new_markets_week', 0):,}",
-            delta="지난주 대비"
-        )
-```
-
-2. `app.py`에 메트릭 대시보드 추가:
-```python
-from metrics import display_metrics_dashboard
-
-# Add tab navigation
-tab1, tab2 = st.tabs(["💬 질의하기", "📊 대시보드"])
-
-with tab1:
-    # Existing query interface
-    ...
-
-with tab2:
-    display_metrics_dashboard()
-
-    # Optional: Auto-refresh
-    if st.checkbox("자동 새로고침 (30초)"):
-        import time
-        time.sleep(30)
-        st.rerun()
+// Update metrics
+function updateMetrics() {
+  document.getElementById('metric-queries').textContent = state.history.length;
+  // Calculate and display average response time
+}
 ```
 
 #### Acceptance Criteria
-- [ ] 주요 KPI 메트릭 표시 (마켓 수, 상품 수 등)
-- [ ] Metric cards 스타일링
-- [ ] 자동 새로고침 옵션 (선택적)
-- [ ] 메트릭 로딩 상태 표시
-- [ ] 탭 네비게이션 작동
+- [x] 질의 히스토리 LocalStorage 저장
+- [x] 히스토리 목록 렌더링
+- [x] 재실행 버튼 작동
+- [x] 삭제 버튼 작동
+- [x] 메트릭 대시보드 (총 질의 수, 검색 수, 평균 응답시간, API 상태)
 
 ---
 
-### Task 4.6: 시맨틱 검색 UI 통합
+### Task 4.6: 페이지 네비게이션 및 통합
 
 #### What & Why
-Vector Search 기능을 대시보드에 통합하여 상품 검색 UI를 제공합니다.
+4개 페이지 간 전환 기능을 구현하고 전체 애플리케이션을 통합합니다.
 
 #### Tech Spec
-- Semantic search API 호출
-- Product card display
-- Image placeholder
+- SPA 방식 페이지 전환
+- Active state 관리
+- Smooth transitions
 
 #### How
 
-1. `dashboard/search.py` 생성:
-```python
-import streamlit as st
-import requests
+1. `app.js`에 페이지 전환 로직 추가:
+```javascript
+function switchPage(page) {
+  // Update navigation buttons
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-page') === page);
+  });
 
-def semantic_search_ui():
-    """Semantic search interface"""
-    st.header("🔍 상품 검색")
+  // Show/hide pages
+  document.querySelectorAll('.page').forEach(pageEl => {
+    pageEl.classList.toggle('active', pageEl.id === `${page}-page`);
+  });
 
-    search_query = st.text_input(
-        "찾고 싶은 상품을 설명하세요",
-        placeholder="예: 여름용 시원한 소재의 남성 셔츠"
-    )
-
-    if search_query:
-        with st.spinner("검색 중..."):
-            response = requests.get(
-                f"{API_BASE_URL}/search/semantic",
-                params={"q": search_query, "k": 10}
-            )
-
-            if response.ok:
-                results = response.json()
-
-                st.write(f"**{len(results)}개의 상품을 찾았습니다**")
-
-                # Display results in grid
-                cols = st.columns(3)
-                for idx, product in enumerate(results):
-                    with cols[idx % 3]:
-                        st.markdown(f"### {product['name']}")
-                        st.caption(f"카테고리: {product['category']}")
-                        st.caption(f"매장: {product['marketName']}")
-                        st.caption(f"유사도: {product['score']:.2f}")
-                        st.markdown(product['description'][:100] + "...")
-                        st.divider()
-```
-
-2. `app.py`에 검색 탭 추가:
-```python
-from search import semantic_search_ui
-
-tab1, tab2, tab3 = st.tabs(["💬 질의하기", "📊 대시보드", "🔍 상품 검색"])
-
-with tab3:
-    semantic_search_ui()
+  // Load page-specific data
+  if (page === 'history') {
+    renderHistory();
+  } else if (page === 'metrics') {
+    updateMetrics();
+  }
+}
 ```
 
 #### Acceptance Criteria
-- [ ] 시맨틱 검색 입력 UI
-- [ ] 검색 결과 카드 형식으로 표시
-- [ ] 유사도 스코어 표시
-- [ ] 그리드 레이아웃 (3열)
-- [ ] GET `/search/semantic` API 연동
+- [x] 4개 페이지 전환 기능 (AI 질의, 시맨틱 검색, 히스토리, 메트릭)
+- [x] Active state 표시
+- [x] 페이드 인 애니메이션
+- [x] 초기 로드 시 히스토리 복원
 
 ---
 
 ## ✅ Phase 완료 기준
 
-- [ ] Streamlit 대시보드 실행 가능
-- [ ] 자연어 질의 인터페이스 작동
-- [ ] AI Agent API 연동 성공
-- [ ] 데이터 자동 시각화 (bar, line, pie chart)
-- [ ] 질의 히스토리 및 재실행 기능
-- [ ] 즐겨찾기 기능 구현
-- [ ] 실시간 메트릭 대시보드
-- [ ] 시맨틱 검색 UI 통합
-- [ ] 로딩 상태 및 에러 처리
-- [ ] 반응형 레이아웃 (3열 그리드)
+- [x] NestJS 정적 파일 서빙 설정
+- [x] HTML/CSS 레이아웃 구현
+- [x] 자연어 질의 인터페이스 작동
+- [x] AI Agent API 연동 성공
+- [x] 시맨틱 검색 UI 통합
+- [x] 질의 히스토리 및 재실행 기능
+- [x] 메트릭 대시보드
+- [x] LocalStorage 기반 데이터 저장
+- [x] 반응형 레이아웃 (모바일 대응)
+- [x] 로딩 상태 및 에러 처리
 
 ## 🚀 다음 단계
 
 Phase 4 완료 후 [Phase 5: Infrastructure](./05-Infrastructure.md)로 진행하여 Terraform 기반 인프라 자동화 및 CI/CD 파이프라인을 구축합니다.
+
+## 📂 파일 구조
+
+```
+public/
+├── index.html          # 메인 HTML 페이지
+├── styles.css          # 스타일시트
+└── app.js             # JavaScript 로직
+
+src/
+└── app.module.ts      # ServeStaticModule 설정
+```
+
+## 🌐 접속 방법
+
+NestJS 서버 실행 후 브라우저에서 접속:
+```
+http://localhost:3000
+```
+
+API 엔드포인트는 동일한 서버에서 제공:
+- POST /agent/query - AI 질의
+- GET /search/semantic - 의미 기반 검색
+- GET /search/hybrid - 하이브리드 검색
+- GET /search/similar/:id - 유사 상품 검색
