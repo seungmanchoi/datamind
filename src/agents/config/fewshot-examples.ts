@@ -1,0 +1,240 @@
+/**
+ * Few-Shot 예제 설정
+ * Text-to-SQL Agent가 참조하는 샘플 쿼리 모음
+ * 실제 NDMarket 데이터베이스 스키마와 데이터를 기반으로 작성됨
+ */
+
+export interface FewShotExample {
+  /** 사용자 질의 (자연어) */
+  question: string;
+  /** 해당 질의에 대한 SQL 쿼리 */
+  sql: string;
+  /** 예제 설명 (Agent 학습용) */
+  description?: string;
+}
+
+/**
+ * Few-Shot 예제 목록
+ * Agent가 유사한 질의를 받았을 때 이 예제를 참조하여 SQL 생성
+ */
+export const fewShotExamples: FewShotExample[] = [
+  // 1. 최신 상품 조회
+  {
+    question: '최근에 등록된 상품 5개를 보여줘',
+    sql: `SELECT
+  p.id,
+  p.product_name,
+  p.price,
+  p.like_count,
+  m.market_name,
+  p.create_date
+FROM product p
+JOIN market m ON p.market_id = m.id
+WHERE p.is_deleted = 0
+ORDER BY p.create_date DESC
+LIMIT 5`,
+    description: '최신 등록 상품 조회 - product와 market JOIN, is_deleted 필터링',
+  },
+
+  // 2. 마켓별 상품 수 집계
+  {
+    question: '상품이 가장 많은 마켓 상위 5개를 알려줘',
+    sql: `SELECT
+  m.market_name,
+  COUNT(p.id) as product_count,
+  SUM(p.like_count) as total_likes
+FROM market m
+LEFT JOIN product p ON m.id = p.market_id AND p.is_deleted = 0
+GROUP BY m.id, m.market_name
+ORDER BY product_count DESC
+LIMIT 5`,
+    description: '마켓별 상품 수 집계 - LEFT JOIN으로 상품이 없는 마켓도 포함',
+  },
+
+  // 3. 일별 통계 조회
+  {
+    question: '최근 5일간 주문 통계를 보여줘',
+    sql: `SELECT
+  statistics_date,
+  order_count,
+  order_price,
+  product_view_count,
+  product_like_count
+FROM market_statistics_daily
+ORDER BY statistics_date DESC
+LIMIT 5`,
+    description: '일별 통계 조회 - market_statistics_daily 테이블 사용',
+  },
+
+  // 4. 가격대별 상품 조회
+  {
+    question: '1만원에서 3만원 사이의 상품을 보여줘',
+    sql: `SELECT
+  p.product_name,
+  p.price,
+  m.market_name,
+  p.like_count
+FROM product p
+JOIN market m ON p.market_id = m.id
+WHERE p.is_deleted = 0
+  AND p.price BETWEEN 10000 AND 30000
+ORDER BY p.price ASC
+LIMIT 20`,
+    description: '가격 범위 필터링 - BETWEEN 사용',
+  },
+
+  // 5. 인기 상품 조회
+  {
+    question: '좋아요가 가장 많은 상품 10개를 보여줘',
+    sql: `SELECT
+  p.product_name,
+  p.price,
+  p.like_count,
+  m.market_name,
+  p.create_date
+FROM product p
+JOIN market m ON p.market_id = m.id
+WHERE p.is_deleted = 0
+ORDER BY p.like_count DESC, p.create_date DESC
+LIMIT 10`,
+    description: '인기 상품 조회 - like_count 기준 정렬, 동일 시 최신순',
+  },
+
+  // 6. 마켓 정보 조회
+  {
+    question: '특정 마켓의 기본 정보를 알려줘',
+    sql: `SELECT
+  market_name,
+  business_name,
+  tel,
+  address,
+  market_status,
+  create_date
+FROM market
+WHERE market_name LIKE '%소나타%'
+LIMIT 1`,
+    description: '마켓 정보 조회 - LIKE 사용한 패턴 매칭',
+  },
+
+  // 7. 카테고리별 상품 수
+  {
+    question: '카테고리별로 상품이 몇 개씩 있는지 알려줘',
+    sql: `SELECT
+  c.category_name,
+  COUNT(p.id) as product_count
+FROM category c
+LEFT JOIN product p ON c.id = p.category_id AND p.is_deleted = 0
+GROUP BY c.id, c.category_name
+ORDER BY product_count DESC
+LIMIT 10`,
+    description: '카테고리별 집계 - category 테이블 조인',
+  },
+
+  // 8. 날짜 범위 조회
+  {
+    question: '이번 달에 등록된 상품을 보여줘',
+    sql: `SELECT
+  p.product_name,
+  p.price,
+  m.market_name,
+  p.create_date
+FROM product p
+JOIN market m ON p.market_id = m.id
+WHERE p.is_deleted = 0
+  AND p.create_date >= DATE_FORMAT(NOW(), '%Y-%m-01')
+ORDER BY p.create_date DESC
+LIMIT 20`,
+    description: '날짜 범위 필터링 - DATE_FORMAT 함수 사용',
+  },
+
+  // 9. 매출 통계
+  {
+    question: '일별 주문 금액과 주문 건수를 보여줘',
+    sql: `SELECT
+  statistics_date,
+  SUM(order_count) as total_orders,
+  SUM(order_price) as total_sales,
+  AVG(order_price) as avg_order_value
+FROM market_statistics_daily
+GROUP BY statistics_date
+ORDER BY statistics_date DESC
+LIMIT 30`,
+    description: '일별 매출 통계 - 집계 함수 사용 (SUM, AVG)',
+  },
+
+  // 10. 복합 조건 검색
+  {
+    question: '소나타 마켓에서 가격이 2만원 이하인 상품 중 좋아요가 5개 이상인 상품을 보여줘',
+    sql: `SELECT
+  p.product_name,
+  p.price,
+  p.like_count,
+  m.market_name
+FROM product p
+JOIN market m ON p.market_id = m.id
+WHERE p.is_deleted = 0
+  AND m.market_name = '소나타'
+  AND p.price <= 20000
+  AND p.like_count >= 5
+ORDER BY p.like_count DESC, p.price ASC
+LIMIT 20`,
+    description: '복합 조건 검색 - 여러 WHERE 조건 조합',
+  },
+];
+
+/**
+ * Few-Shot 예제를 프롬프트용 텍스트로 포맷팅
+ */
+export function formatFewShotExamples(): string {
+  return fewShotExamples
+    .map(
+      (example, index) => `
+Example ${index + 1}:
+Question: "${example.question}"
+SQL: ${example.sql}
+`,
+    )
+    .join('\n');
+}
+
+/**
+ * 관련 Few-Shot 예제 필터링 (향후 Embedding 기반 유사도 검색으로 개선 가능)
+ * @param query - 사용자 질의
+ * @param maxExamples - 최대 반환 예제 수
+ */
+export function getRelevantExamples(query: string, maxExamples: number = 3): FewShotExample[] {
+  // 키워드 매칭 기반 간단한 필터링
+  const keywords = {
+    최신: ['최근', '최신', '새로', '등록'],
+    인기: ['인기', '좋아요', 'like', '많은'],
+    가격: ['가격', '원', '저렴', '비싼'],
+    마켓: ['마켓', '매장', '상점'],
+    통계: ['통계', '집계', '분석', '매출', '주문'],
+    카테고리: ['카테고리', '종류', '분류'],
+  };
+
+  const queryLower = query.toLowerCase();
+  const scoredExamples = fewShotExamples.map((example) => {
+    let score = 0;
+
+    // 키워드 매칭 점수 계산
+    Object.entries(keywords).forEach(([, terms]) => {
+      terms.forEach((term) => {
+        if (queryLower.includes(term)) {
+          score++;
+        }
+        if (example.question.toLowerCase().includes(term)) {
+          score++;
+        }
+      });
+    });
+
+    return { example, score };
+  });
+
+  // 점수 순으로 정렬하여 상위 N개 반환
+  return scoredExamples
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxExamples)
+    .map((item) => item.example);
+}

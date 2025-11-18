@@ -1,6 +1,7 @@
 import { BedrockChat } from '@langchain/community/chat_models/bedrock';
 import { RunnableConfig } from '@langchain/core/runnables';
 
+import { formatFewShotExamples, getRelevantExamples } from '../config/fewshot-examples';
 import { AgentStateType, setSqlQuery } from '../state';
 import { SchemaRetrievalTool } from '../tools';
 
@@ -37,25 +38,46 @@ export async function textToSqlNode(state: AgentStateType, config?: RunnableConf
 }
 
 /**
- * Text-to-SQL 프롬프트 생성
+ * Text-to-SQL 프롬프트 생성 (Few-Shot Learning 적용)
  */
 function buildTextToSqlPrompt(userQuery: string, schemaInfo: string): string {
-  return `You are an expert SQL query generator for a MySQL database.
+  // 사용자 질의와 관련된 예제 3개 선택
+  const relevantExamples = getRelevantExamples(userQuery, 3);
+  const examplesText =
+    relevantExamples.length > 0
+      ? relevantExamples
+          .map(
+            (ex, idx) => `
+Example ${idx + 1}:
+Question: "${ex.question}"
+SQL: ${ex.sql}`,
+          )
+          .join('\n')
+      : formatFewShotExamples();
+
+  return `You are an expert SQL query generator for a MySQL database (NDMarket E-commerce Platform).
 
 Database Schema:
 ${schemaInfo}
+
+Here are some example queries to help you understand the database structure and query patterns:
+${examplesText}
+
+Now, generate a SQL query for the following request:
 
 User Request:
 "${userQuery}"
 
 Instructions:
-1. Analyze the user's request carefully
-2. Identify which tables and columns are needed
+1. Analyze the user's request carefully and refer to the examples above
+2. Identify which tables and columns are needed (주요 테이블: product, market, market_statistics_daily, order_market_product)
 3. Generate a valid MySQL SELECT query
 4. Return ONLY the SQL query, without any explanation or markdown formatting
 5. Use proper JOIN clauses when multiple tables are involved
 6. Include appropriate WHERE, ORDER BY, and LIMIT clauses as needed
-7. Ensure the query is optimized and follows MySQL best practices
+7. Always add "p.is_deleted = 0" when querying the product table
+8. Ensure the query is optimized and follows MySQL best practices
+9. Use Korean-friendly column aliases when appropriate (AS 절 사용)
 
 Generate the SQL query:`;
 }

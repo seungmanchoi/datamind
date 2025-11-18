@@ -15,7 +15,10 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git remote add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "mcp__mysql__list_tables",
+      "mcp__mysql__describe_table",
+      "mcp__mysql__mysql_query"
     ],
     "deny": [],
     "ask": []

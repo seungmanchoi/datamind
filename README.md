@@ -250,16 +250,26 @@ curl -X POST http://localhost:3000/query \
 
 ---
 
-### 🔄 Phase 2: Multi-Agent System
-**기간**: 6일 | **상태**: 🔜 예정
+### ✅ Phase 2: Multi-Agent System (완료)
+**기간**: 6일 | **상태**: ✅ 완료
 
-- [ ] LangChain 통합
-- [ ] LangGraph 워크플로우 설계
-- [ ] Text-to-SQL Agent 구현
-- [ ] Insight Summarizer Agent 구현
-- [ ] Agent 간 상태 관리 및 통신
-- [ ] Multi-step 쿼리 처리
-- [ ] 에러 핸들링 및 Retry 로직
+- [x] LangChain 통합 (BedrockChat, Tools)
+- [x] LangGraph 워크플로우 설계 (StateGraph)
+- [x] Text-to-SQL Agent 구현 (Few-Shot Learning)
+- [x] Insight Summarizer Agent 구현
+- [x] Agent 간 상태 관리 및 통신 (AgentState)
+- [x] Multi-step 쿼리 처리 (Node 기반 파이프라인)
+- [x] 에러 핸들링 및 Retry 로직
+- [x] **Few-Shot 예제 기반 SQL 생성 (10개 샘플 쿼리)**
+
+**주요 API**:
+- `POST /agents/insight` - 데이터 인사이트 워크플로우 실행
+- `POST /agents/test` - Agent 프롬프트 테스트
+
+**Few-Shot Learning**:
+- 실제 NDMarket 데이터베이스 기반 10개 샘플 쿼리
+- 키워드 기반 관련 예제 자동 선택
+- 자세한 내용: [docs/fewshot-examples.md](./docs/fewshot-examples.md)
 
 **상세 가이드**: [docs/phases/02-Agent-System.md](./docs/phases/02-Agent-System.md)
 
