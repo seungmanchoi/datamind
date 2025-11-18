@@ -6,6 +6,10 @@ interface TestPromptDto {
   prompt: string;
 }
 
+interface DataInsightDto {
+  query: string;
+}
+
 @Controller('agents')
 export class AgentController {
   private readonly logger = new Logger(AgentController.name);
@@ -25,6 +29,23 @@ export class AgentController {
       return { response };
     } catch (error) {
       this.logger.error('Failed to test prompt', error);
+      throw error;
+    }
+  }
+
+  @Post('insight')
+  @HttpCode(HttpStatus.OK)
+  async getDataInsight(@Body() dto: DataInsightDto) {
+    this.logger.log(`Received data insight request: ${dto.query}`);
+
+    try {
+      const result = await this.agentService.executeDataInsightWorkflow(dto.query);
+
+      this.logger.log('Data insight workflow completed');
+
+      return result;
+    } catch (error) {
+      this.logger.error('Failed to execute data insight workflow', error);
       throw error;
     }
   }

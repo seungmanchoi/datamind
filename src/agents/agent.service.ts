@@ -3,7 +3,9 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 
 import { createBedrockChatModel } from './config/langchain.config';
+import { initializeState } from './state';
 import { SchemaRetrievalTool, SqlExecutorTool } from './tools';
+import { createDataInsightWorkflow } from './workflows';
 
 @Injectable()
 export class AgentService {
@@ -63,5 +65,47 @@ export class AgentService {
    */
   getAllTools() {
     return [this.sqlExecutor, this.schemaRetrieval];
+  }
+
+  /**
+   * 데이터 인사이트 워크플로우 실행
+   * 사용자 질의 → SQL 생성 → 실행 → 인사이트 요약
+   * @param query - 사용자의 자연어 질의
+   * @returns 워크플로우 실행 결과 (SQL, 결과, 요약)
+   */
+  async executeDataInsightWorkflow(query: string) {
+    this.logger.log(`Executing data insight workflow for query: ${query}`);
+
+    try {
+      // 워크플로우 생성
+      const workflow = createDataInsightWorkflow();
+
+      // State 초기화
+      const initialState = initializeState(query);
+
+      // 워크플로우 실행 (Tool과 LLM을 config로 전달)
+      const result = await workflow.invoke(initialState, {
+        configurable: {
+          chatModel: this.chatModel,
+          sqlExecutor: this.sqlExecutor,
+          schemaRetrieval: this.schemaRetrieval,
+        },
+      });
+
+      this.logger.log('Workflow execution completed');
+
+      // 결과 반환
+      return {
+        input: result.input,
+        sqlQuery: result.sqlQuery,
+        queryResult: result.queryResult,
+        summary: result.summary,
+        error: result.error,
+        metadata: result.metadata,
+      };
+    } catch (error) {
+      this.logger.error('Failed to execute workflow', error);
+      throw error;
+    }
   }
 }
