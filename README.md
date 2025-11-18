@@ -324,15 +324,17 @@ curl -X POST http://localhost:3000/query \
 
 ---
 
-### 🔄 Phase 5: Infrastructure & CI/CD
-**기간**: 6일 | **상태**: 🔜 예정
+### ✅ Phase 5: Infrastructure & CI/CD
+**기간**: 6일 | **상태**: ✅ 완료
 
-- [ ] Terraform으로 AWS 인프라 정의
-- [ ] VPC, IAM, OpenSearch 모듈화
-- [ ] CloudWatch 모니터링 설정
-- [ ] GitHub Actions CI/CD 파이프라인
-- [ ] 환경별 배포 전략 (dev/staging/prod)
-- [ ] Repository 구조 결정 (Monorepo vs Multi-repo)
+- [x] Terraform 프로젝트 구조 및 State Backend 설정 (S3 + DynamoDB)
+- [x] VPC 모듈 구현 (Public/Private Subnets, NAT Gateway, IGW)
+- [x] IAM Roles 및 Policies 구현 (ECS, Bedrock, OpenSearch 접근)
+- [x] OpenSearch Serverless 모듈 구현
+- [x] ECS Fargate 배포 모듈 (Cluster, Service, ALB, Auto Scaling)
+- [x] Dockerfile 및 Multi-stage 빌드
+- [x] GitHub Actions CI/CD 파이프라인 (자동 빌드, ECR Push, ECS 배포)
+- [x] CloudWatch 모니터링 및 알람 설정 (CPU, Memory, ALB 메트릭)
 
 **상세 가이드**: [docs/phases/05-Infrastructure.md](./docs/phases/05-Infrastructure.md)
 

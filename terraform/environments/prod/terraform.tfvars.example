@@ -1,0 +1,19 @@
+# Project Configuration
+project_name = "ndmarket"
+environment  = "production"
+aws_region   = "us-east-1"
+
+# VPC Configuration
+vpc_cidr             = "10.0.0.0/16"
+availability_zones   = ["us-east-1a", "us-east-1b"]
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.10.0/24", "10.0.20.0/24"]
+
+# ECS Configuration
+app_image     = "<AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/ndmarket-app:latest"
+task_cpu      = "512"
+task_memory   = "1024"
+desired_count = 2
+
+# Monitoring Configuration
+alarm_email = "your-email@example.com"

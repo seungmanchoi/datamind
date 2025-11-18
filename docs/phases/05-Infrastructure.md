@@ -1,22 +1,40 @@
-# Phase 5: Infrastructure
+# Phase 5: Infrastructure & Deployment
 
-## 📋 작업 정의 및 목표 (What & Why)
+**기간**: 6일
+**상태**: ✅ 완료
+**담당**: DevOps / Infrastructure Engineer
 
-### What
-Terraform을 사용하여 AWS/GCP 멀티 클라우드 인프라를 코드로 관리하고, CI/CD 파이프라인을 구축하여 프로덕션 환경에 자동 배포합니다.
+---
 
-### Why
-- 인프라를 코드로 관리하여 재현 가능하고 버전 관리 가능
-- 수동 설정 오류 방지 및 일관성 유지
-- 자동 배포로 개발 속도 향상
-- 모니터링 및 알람으로 안정적 운영
-- 프로덕션 환경 보안 강화
+## What
 
-### 달성 결과
-- Terraform으로 전체 인프라 자동 생성
-- GitHub Actions 기반 CI/CD 파이프라인
-- CloudWatch 모니터링 및 알람 설정
-- 프로덕션 환경 배포 완료
+AWS 인프라를 Terraform으로 코드화하고, ECS Fargate 기반 프로덕션 배포 환경을 구축합니다.
+
+**Infrastructure as Code (IaC):**
+- Terraform 1.6+
+- AWS Provider 5.0+
+- Modular architecture (vpc, iam, ecs, opensearch, monitoring)
+- S3 Backend with DynamoDB locking
+
+**Container Orchestration:**
+- Amazon ECS Fargate
+- Application Load Balancer
+- Auto Scaling (CPU/Memory based)
+- CloudWatch Container Insights
+
+**CI/CD:**
+- GitHub Actions
+- Amazon ECR (Container Registry)
+- Automated deployment on main branch push
+
+---
+
+## Why
+
+1. **Infrastructure as Code**: 버전 관리, 재현 가능성, 팀 협업
+2. **서버리스 컨테이너**: 인프라 관리 부담 감소, 비용 최적화
+3. **자동 배포**: 빠른 개발 사이클, 안정적인 릴리스
+4. **프로덕션 준비**: 모니터링, 알람, 자동 확장 설정
 
 ---
 
