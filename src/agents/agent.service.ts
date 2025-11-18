@@ -1,15 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 
 import { createBedrockChatModel } from './config/langchain.config';
+import { SchemaRetrievalTool, SqlExecutorTool } from './tools';
 
 @Injectable()
 export class AgentService {
   private readonly logger = new Logger(AgentService.name);
   private readonly chatModel;
+  private readonly sqlExecutor: SqlExecutorTool;
+  private readonly schemaRetrieval: SchemaRetrievalTool;
 
-  constructor() {
+  constructor(@InjectDataSource() private readonly dataSource: DataSource) {
     this.chatModel = createBedrockChatModel();
-    this.logger.log('AgentService initialized with Bedrock ChatModel');
+    this.sqlExecutor = new SqlExecutorTool(dataSource);
+    this.schemaRetrieval = new SchemaRetrievalTool(dataSource);
+    this.logger.log('AgentService initialized with Bedrock ChatModel and Tools');
   }
 
   /**
@@ -35,5 +42,26 @@ export class AgentService {
    */
   getChatModel() {
     return this.chatModel;
+  }
+
+  /**
+   * SQL Executor Tool 반환
+   */
+  getSqlExecutor(): SqlExecutorTool {
+    return this.sqlExecutor;
+  }
+
+  /**
+   * Schema Retrieval Tool 반환
+   */
+  getSchemaRetrieval(): SchemaRetrievalTool {
+    return this.schemaRetrieval;
+  }
+
+  /**
+   * 모든 Tool 목록 반환
+   */
+  getAllTools() {
+    return [this.sqlExecutor, this.schemaRetrieval];
   }
 }

@@ -12,7 +12,10 @@
       "Bash(pnpm run format:*)",
       "Bash(pnpm run lint)",
       "Bash(pnpm run build:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
