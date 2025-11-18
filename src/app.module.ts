@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { AgentsModule } from './agents/agents.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BedrockService } from './common/bedrock.service';
@@ -35,6 +36,7 @@ import { QueryModule } from './modules/query/query.module';
       }),
     }),
     QueryModule,
+    AgentsModule,
   ],
   controllers: [AppController],
   providers: [AppService, BedrockService],
