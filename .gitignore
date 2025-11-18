@@ -30,3 +30,6 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+
+# Claude Code settings
+.claude/settings.local.json
