@@ -282,10 +282,10 @@ export default function QueryPage() {
 
               {/* 비교 분석 */}
               {result.insights.comparison && (
-                <div className="bg-white/90 backdrop-blur-sm p-5 rounded-xl border-l-4 border-blue-500 shadow-sm hover:shadow-md transition-shadow">
+                <div className="relative bg-gradient-to-r from-blue-50/80 to-white p-5 rounded-xl border-l-[6px] border-blue-600 shadow-sm hover:shadow-md transition-all">
                   <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                    <div className="bg-blue-100 p-1.5 rounded-lg">
-                      <BarChart3 className="w-4 h-4 text-blue-600" />
+                    <div className="bg-blue-500 p-2 rounded-lg">
+                      <BarChart3 className="w-4 h-4 text-white" />
                     </div>
                     비교 분석
                   </h4>
@@ -295,10 +295,10 @@ export default function QueryPage() {
 
               {/* 트렌드 */}
               {result.insights.trend && (
-                <div className="bg-white/90 backdrop-blur-sm p-5 rounded-xl border-l-4 border-emerald-500 shadow-sm hover:shadow-md transition-shadow">
+                <div className="relative bg-gradient-to-r from-emerald-50/80 to-white p-5 rounded-xl border-l-[6px] border-emerald-600 shadow-sm hover:shadow-md transition-all">
                   <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                    <div className="bg-emerald-100 p-1.5 rounded-lg">
-                      <TrendingUp className="w-4 h-4 text-emerald-600" />
+                    <div className="bg-emerald-500 p-2 rounded-lg">
+                      <TrendingUp className="w-4 h-4 text-white" />
                     </div>
                     트렌드
                   </h4>
@@ -308,10 +308,10 @@ export default function QueryPage() {
 
               {/* 이상치/특이사항 */}
               {result.insights.anomaly && (
-                <div className="bg-white/90 backdrop-blur-sm p-5 rounded-xl border-l-4 border-amber-500 shadow-sm hover:shadow-md transition-shadow">
+                <div className="relative bg-gradient-to-r from-amber-50/80 to-white p-5 rounded-xl border-l-[6px] border-amber-600 shadow-sm hover:shadow-md transition-all">
                   <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                    <div className="bg-amber-100 p-1.5 rounded-lg">
-                      <AlertCircle className="w-4 h-4 text-amber-600" />
+                    <div className="bg-amber-500 p-2 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-white" />
                     </div>
                     특이사항
                   </h4>
@@ -321,10 +321,10 @@ export default function QueryPage() {
 
               {/* 추천 사항 */}
               {result.insights.recommendation && (
-                <div className="bg-white/90 backdrop-blur-sm p-5 rounded-xl border-l-4 border-indigo-500 shadow-sm hover:shadow-md transition-shadow">
+                <div className="relative bg-gradient-to-r from-indigo-50/80 to-white p-5 rounded-xl border-l-[6px] border-indigo-600 shadow-sm hover:shadow-md transition-all">
                   <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                    <div className="bg-indigo-100 p-1.5 rounded-lg">
-                      <Lightbulb className="w-4 h-4 text-indigo-600" />
+                    <div className="bg-indigo-500 p-2 rounded-lg">
+                      <Lightbulb className="w-4 h-4 text-white" />
                     </div>
                     추천 사항
                   </h4>
