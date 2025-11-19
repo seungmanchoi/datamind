@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { api, type AgentQueryResponse } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency, formatNumber } from '@/lib/utils';
 import ResultChart from '@/components/ResultChart';
 
 export default function QueryPage() {
@@ -371,18 +371,49 @@ export default function QueryPage() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {result.results.map((row, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50">
-                          {Object.values(row).map((value, cellIdx) => (
-                            <td
-                              key={cellIdx}
-                              className="px-4 py-3 whitespace-nowrap text-sm text-gray-700"
-                            >
-                              {String(value ?? '')}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
+                      {result.results.map((row, idx) => {
+                        return (
+                          <tr key={idx} className="hover:bg-gray-50">
+                            {Object.entries(row).map(([key, value], cellIdx) => {
+                              // 금액 필드인지 확인
+                              const isCurrency =
+                                /price|amount|금액|매출|판매|수익|revenue|sales|total|합계|평균/i.test(
+                                  key,
+                                );
+
+                              // 숫자 필드인지 확인
+                              const isNumeric =
+                                value !== null &&
+                                value !== '' &&
+                                !isNaN(Number(value));
+
+                              let displayValue: string;
+                              if (isCurrency && isNumeric) {
+                                displayValue = formatCurrency(value);
+                              } else if (
+                                isNumeric &&
+                                /수량|count|개수|건수/i.test(key)
+                              ) {
+                                displayValue = formatNumber(value);
+                              } else {
+                                displayValue = String(value ?? '');
+                              }
+
+                              return (
+                                <td
+                                  key={cellIdx}
+                                  className={cn(
+                                    'px-4 py-3 text-sm text-gray-700',
+                                    isNumeric ? 'text-right whitespace-nowrap' : 'whitespace-nowrap',
+                                  )}
+                                >
+                                  {displayValue}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
