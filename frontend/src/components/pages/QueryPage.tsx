@@ -81,6 +81,18 @@ export default function QueryPage() {
     }
   };
 
+  // 프리셋 예제 쿼리
+  const exampleQueries = [
+    '최근 30일간 가장 많이 팔린 상품 10개는?',
+    '강남역점의 이번 달 매출은 얼마인가요?',
+    '카테고리별 평균 판매가는?',
+    '재고가 10개 미만인 상품 목록',
+  ];
+
+  const handleExampleClick = (exampleQuery: string) => {
+    setQuery(exampleQuery);
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-100">
@@ -125,6 +137,24 @@ export default function QueryPage() {
               </>
             )}
           </button>
+        </div>
+
+        {/* 프리셋 예제 버튼 */}
+        <div className="flex flex-wrap gap-2">
+          <span className="text-sm text-gray-600 self-center mr-2">예제 질의:</span>
+          {exampleQueries.map((example, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleExampleClick(example)}
+              className="px-3 py-1.5 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700
+                       hover:text-blue-800 rounded-md border border-blue-200
+                       transition-colors duration-200"
+              disabled={queryMutation.isPending}
+            >
+              {example}
+            </button>
+          ))}
         </div>
       </form>
 
