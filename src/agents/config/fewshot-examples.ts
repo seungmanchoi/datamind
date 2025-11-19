@@ -223,8 +223,7 @@ WHERE p.is_deleted = 0
   AND c.category1_name = '의류'
 ORDER BY p.create_date DESC
 LIMIT 20`,
-    description:
-      '대분류 카테고리 필터링 - category1_name 사용, 계층 정보(category1/2/3_name) 포함',
+    description: '대분류 카테고리 필터링 - category1_name 사용, 계층 정보(category1/2/3_name) 포함',
   },
 
   // 13. 중분류 카테고리로 상품 조회
@@ -246,8 +245,7 @@ WHERE p.is_deleted = 0
   AND c.category2_name = '귀걸이'
 ORDER BY p.like_count DESC, p.create_date DESC
 LIMIT 15`,
-    description:
-      '중분류 카테고리 필터링 - category1_name + category2_name 조합, 계층 구조 활용',
+    description: '중분류 카테고리 필터링 - category1_name + category2_name 조합, 계층 구조 활용',
   },
 
   // 14. 소분류 카테고리로 상품 조회
@@ -272,8 +270,7 @@ WHERE p.is_deleted = 0
   AND c.depth = 3
 ORDER BY p.create_date DESC
 LIMIT 20`,
-    description:
-      '소분류 카테고리 필터링 - category3_name 사용, depth=3으로 최하위 카테고리 확인, 전체 계층 정보 포함',
+    description: '소분류 카테고리 필터링 - category3_name 사용, depth=3으로 최하위 카테고리 확인, 전체 계층 정보 포함',
   },
 
   // 15. 카테고리 계층 구조 조회
@@ -294,6 +291,35 @@ ORDER BY c.depth ASC, c.category2_name ASC, c.category3_name ASC
 LIMIT 50`,
     description:
       '카테고리 계층 구조 탐색 - depth로 계층 구분(1=대분류, 2=중분류, 3=소분류), is_disabled=0으로 활성 카테고리만 조회',
+  },
+
+  // 16. 특정 카테고리 판매량 Top N (30일 기준)
+  {
+    question: '아동복은 어떤게 잘 나가? 30일간 많이 팔린건 어떤건지 보여줘 50개 보여줘',
+    sql: `SELECT
+  p.product_name AS 상품명,
+  c.category1_name AS 대분류,
+  c.category2_name AS 중분류,
+  c.category3_name AS 소분류,
+  m.market_name AS 마켓,
+  SUM(ompo.final_quantity) AS 판매수량,
+  SUM(ompo.final_total_price) AS 총판매금액,
+  ROUND(SUM(ompo.final_total_price) / SUM(ompo.final_quantity), 0) AS 평균단가
+FROM order_market_product_option ompo
+JOIN order_market_product omp ON ompo.order_market_product_id = omp.id
+JOIN product p ON omp.product_id = p.id
+JOIN category c ON p.category_id = c.id
+JOIN market m ON p.market_id = m.id
+JOIN order_market om ON omp.order_market_id = om.id
+JOIN \`order\` o ON om.order_id = o.id
+WHERE c.category1_name = '아동복'
+  AND o.order_status IN (3, 4, 5)
+  AND o.order_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+GROUP BY p.id, p.product_name, c.category1_name, c.category2_name, c.category3_name, m.market_name
+ORDER BY 판매수량 DESC
+LIMIT 50`,
+    description:
+      '특정 카테고리 판매량 Top N - order_market_product_option.final_quantity 사용 (NOT order_market_product), category1_name으로 대분류 필터링, 30일 기간, order_status IN (3,4,5)로 유효 주문만, 카테고리 계층 정보와 마켓 정보 포함',
   },
 ];
 
@@ -333,6 +359,7 @@ export function getRelevantExamples(query: string, maxExamples: number = 3): Few
       '중분류',
       '소분류',
       '의류',
+      '아동복',
       '악세사리',
       '귀걸이',
       '목걸이',
