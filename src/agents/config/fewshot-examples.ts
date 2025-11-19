@@ -180,6 +180,30 @@ ORDER BY p.like_count DESC, p.price ASC
 LIMIT 20`,
     description: '복합 조건 검색 - 여러 WHERE 조건 조합',
   },
+
+  // 11. 카테고리별 판매량 조회 (order 테이블 JOIN)
+  {
+    question: '요즘 많이 팔리는 악세사리는 어떤거야?',
+    sql: `SELECT
+  p.product_name AS 상품명,
+  c.category_name AS 카테고리,
+  SUM(ompo.final_quantity) AS 판매수량,
+  SUM(ompo.final_total_price) AS 총판매금액
+FROM order_market_product_option ompo
+JOIN order_market_product omp ON ompo.order_market_product_id = omp.id
+JOIN product p ON omp.product_id = p.id
+JOIN category c ON p.category_id = c.id
+JOIN order_market om ON omp.order_market_id = om.id
+JOIN \`order\` o ON om.order_id = o.id
+WHERE c.category1_name = '악세사리'
+  AND o.order_status IN (3, 4, 5)
+  AND o.order_date >= DATE_SUB(NOW(), INTERVAL 90 DAY)
+GROUP BY p.id, p.product_name, c.category_name
+ORDER BY 판매수량 DESC
+LIMIT 10`,
+    description:
+      '카테고리별 판매량 조회 - order_market_product_option → order → order_status 필터링 필수. order_market에는 order_status가 없으므로 order 테이블 JOIN 필요',
+  },
 ];
 
 /**
