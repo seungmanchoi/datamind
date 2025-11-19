@@ -204,6 +204,97 @@ LIMIT 10`,
     description:
       '카테고리별 판매량 조회 - order_market_product_option → order → order_status 필터링 필수. order_market에는 order_status가 없으므로 order 테이블 JOIN 필요',
   },
+
+  // 12. 대분류 카테고리로 상품 조회
+  {
+    question: '의류 카테고리의 상품을 보여줘',
+    sql: `SELECT
+  p.product_name,
+  p.price,
+  c.category1_name AS 대분류,
+  c.category2_name AS 중분류,
+  c.category3_name AS 소분류,
+  m.market_name,
+  p.like_count
+FROM product p
+JOIN category c ON p.category_id = c.id
+JOIN market m ON p.market_id = m.id
+WHERE p.is_deleted = 0
+  AND c.category1_name = '의류'
+ORDER BY p.create_date DESC
+LIMIT 20`,
+    description:
+      '대분류 카테고리 필터링 - category1_name 사용, 계층 정보(category1/2/3_name) 포함',
+  },
+
+  // 13. 중분류 카테고리로 상품 조회
+  {
+    question: '귀걸이 상품 중에서 인기있는거 보여줘',
+    sql: `SELECT
+  p.product_name,
+  p.price,
+  c.category1_name AS 대분류,
+  c.category2_name AS 중분류,
+  c.category3_name AS 소분류,
+  p.like_count,
+  m.market_name
+FROM product p
+JOIN category c ON p.category_id = c.id
+JOIN market m ON p.market_id = m.id
+WHERE p.is_deleted = 0
+  AND c.category1_name = '악세사리'
+  AND c.category2_name = '귀걸이'
+ORDER BY p.like_count DESC, p.create_date DESC
+LIMIT 15`,
+    description:
+      '중분류 카테고리 필터링 - category1_name + category2_name 조합, 계층 구조 활용',
+  },
+
+  // 14. 소분류 카테고리로 상품 조회
+  {
+    question: '스터드 귀걸이 상품을 보여줘',
+    sql: `SELECT
+  p.product_name,
+  p.price,
+  c.category1_name AS 대분류,
+  c.category2_name AS 중분류,
+  c.category3_name AS 소분류,
+  c.depth,
+  m.market_name,
+  p.like_count
+FROM product p
+JOIN category c ON p.category_id = c.id
+JOIN market m ON p.market_id = m.id
+WHERE p.is_deleted = 0
+  AND c.category1_name = '악세사리'
+  AND c.category2_name = '귀걸이'
+  AND c.category3_name = '스터드'
+  AND c.depth = 3
+ORDER BY p.create_date DESC
+LIMIT 20`,
+    description:
+      '소분류 카테고리 필터링 - category3_name 사용, depth=3으로 최하위 카테고리 확인, 전체 계층 정보 포함',
+  },
+
+  // 15. 카테고리 계층 구조 조회
+  {
+    question: '악세사리 카테고리에는 어떤 종류가 있어?',
+    sql: `SELECT
+  c.category1_name AS 대분류,
+  c.category2_name AS 중분류,
+  c.category3_name AS 소분류,
+  c.depth,
+  COUNT(p.id) AS 상품수
+FROM category c
+LEFT JOIN product p ON c.id = p.category_id AND p.is_deleted = 0
+WHERE c.category1_name = '악세사리'
+  AND c.is_disabled = 0
+GROUP BY c.id, c.category1_name, c.category2_name, c.category3_name, c.depth
+ORDER BY c.depth ASC, c.category2_name ASC, c.category3_name ASC
+LIMIT 50`,
+    description:
+      '카테고리 계층 구조 탐색 - depth로 계층 구분(1=대분류, 2=중분류, 3=소분류), is_disabled=0으로 활성 카테고리만 조회',
+  },
 ];
 
 /**
@@ -233,8 +324,25 @@ export function getRelevantExamples(query: string, maxExamples: number = 3): Few
     인기: ['인기', '좋아요', 'like', '많은'],
     가격: ['가격', '원', '저렴', '비싼'],
     마켓: ['마켓', '매장', '상점'],
-    통계: ['통계', '집계', '분석', '매출', '주문'],
-    카테고리: ['카테고리', '종류', '분류'],
+    통계: ['통계', '집계', '분석', '매출', '주문', '판매량'],
+    카테고리: [
+      '카테고리',
+      '종류',
+      '분류',
+      '대분류',
+      '중분류',
+      '소분류',
+      '의류',
+      '악세사리',
+      '귀걸이',
+      '목걸이',
+      '반지',
+      '팔찌',
+      '스터드',
+      '드롭',
+      '식품',
+      '주방용품',
+    ],
   };
 
   const queryLower = query.toLowerCase();
