@@ -268,24 +268,20 @@ export class QueryService {
 
     // Step 5: 인사이트 생성 (병렬 처리)
     const [insights, visualization] = await Promise.all([
-      this.bedrockService
-        .generateInsights(userQuery, sql, data)
-        .catch((error) => {
-          this.logger.error('Failed to generate insights, using fallback', error);
-          return {
-            summary: '데이터 조회가 완료되었습니다.',
-            keyFindings: ['📊 쿼리가 성공적으로 실행되었습니다'],
-          };
-        }),
-      this.bedrockService
-        .selectVisualization(userQuery, sql, data)
-        .catch((error) => {
-          this.logger.error('Failed to select visualization, using fallback', error);
-          return {
-            type: 'table' as const,
-            reason: '데이터를 테이블 형식으로 표시합니다.',
-          };
-        }),
+      this.bedrockService.generateInsights(userQuery, sql, data).catch((error) => {
+        this.logger.error('Failed to generate insights, using fallback', error);
+        return {
+          summary: '데이터 조회가 완료되었습니다.',
+          keyFindings: ['📊 쿼리가 성공적으로 실행되었습니다'],
+        };
+      }),
+      this.bedrockService.selectVisualization(userQuery, sql, data).catch((error) => {
+        this.logger.error('Failed to select visualization, using fallback', error);
+        return {
+          type: 'table' as const,
+          reason: '데이터를 테이블 형식으로 표시합니다.',
+        };
+      }),
     ]);
 
     this.logger.log(`=== Phase 7 Enhanced Query Pipeline Complete ===`);

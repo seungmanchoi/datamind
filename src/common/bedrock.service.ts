@@ -221,9 +221,7 @@ Generate a MySQL query for the above request.`;
       if (jsonMatch) {
         try {
           const result = JSON.parse(jsonMatch[0]);
-          this.logger.log(
-            `Query analysis complete. Needs clarification: ${result.needsClarification}`,
-          );
+          this.logger.log(`Query analysis complete. Needs clarification: ${result.needsClarification}`);
           return result;
         } catch (error) {
           this.logger.error('Failed to parse query analysis JSON', error);
@@ -355,9 +353,7 @@ Generate a MySQL query for the above request.`;
       if (jsonMatch) {
         try {
           const result = JSON.parse(jsonMatch[0]);
-          this.logger.log(
-            `Visualization selected: ${result.type}${result.chartType ? ` (${result.chartType})` : ''}`,
-          );
+          this.logger.log(`Visualization selected: ${result.type}${result.chartType ? ` (${result.chartType})` : ''}`);
           return result;
         } catch (error) {
           this.logger.error('Failed to parse visualization JSON', error);

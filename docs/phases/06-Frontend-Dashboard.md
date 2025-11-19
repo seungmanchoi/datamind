@@ -171,11 +171,48 @@ datamind-frontend/
     └── chart.ts
 ```
 
-**환경 변수** (.env.local):
+**환경 변수**:
+
+개발 환경 (`frontend/.env.development`):
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3000
-NEXT_PUBLIC_WS_URL=ws://localhost:3000
+# Vite Dev Server(5173)에서 프록시를 통해 백엔드(3000)로 요청
+VITE_API_URL=http://localhost:3000
 ```
+
+프로덕션 환경 (`frontend/.env.production`):
+```env
+# 빌드된 정적 파일이 NestJS(3000)에서 서빙되므로 같은 포트 사용
+VITE_API_URL=http://localhost:3000
+```
+
+**Vite 프록시 설정** (`frontend/vite.config.ts`):
+```typescript
+server: {
+  port: 5173,
+  proxy: {
+    '/api': {
+      target: 'http://localhost:3000',
+      changeOrigin: true,
+    },
+    '/agent': {
+      target: 'http://localhost:3000',
+      changeOrigin: true,
+    },
+    '/search': {
+      target: 'http://localhost:3000',
+      changeOrigin: true,
+    },
+    '/indexing': {
+      target: 'http://localhost:3000',
+      changeOrigin: true,
+    },
+  },
+}
+```
+
+**포트 운영 방식**:
+- **개발 모드**: 백엔드(3000) + 프론트엔드(5173) 별도 실행
+- **프로덕션 모드**: 통합 포트(3000)에서 백엔드 + 프론트엔드 제공
 
 **Acceptance Criteria**:
 - [ ] Next.js 14 App Router 프로젝트 생성 완료

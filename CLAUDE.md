@@ -21,18 +21,44 @@ NDMarket AI Insight Platform - GCP Cloud SQL(MySQL)과 AWS 생성형 AI 인프�
 
 ## 개발 명령어
 
-현재 초기 설정 단계이므로 프로젝트 구조 생성 후 다음 명령어가 추가될 예정:
+### 개발 모드 (Development)
+
+개발 환경에서는 백엔드(3000)와 프론트엔드(5173)를 별도 포트로 실행:
+
+```bash
+# 백엔드 + 프론트엔드 동시 실행 (권장)
+pnpm dev
+
+# 또는 개별 실행 (디버깅 시)
+pnpm run start:dev        # 백엔드만 (포트 3000)
+pnpm run dev:frontend     # 프론트엔드만 (포트 5173)
+```
+
+**접속 URL**:
+- 백엔드 API: http://localhost:3000
+- 프론트엔드: http://localhost:5173 (Vite Dev Server - HMR 지원)
+
+### 프로덕션 모드 (Production)
+
+프로덕션 환경에서는 통합 포트(3000)로 운영:
 
 ```bash
 # 의존성 설치
 pnpm install
 
-# 개발 서버 실행
-pnpm run start:dev
+# 프론트엔드 + 백엔드 빌드
+pnpm run build:all
 
-# 빌드
-pnpm run build
+# 프로덕션 서버 실행
+pnpm run start:prod
+```
 
+**접속 URL**:
+- 통합 서버: http://localhost:3000 (백엔드 + 프론트엔드)
+
+### 기타 명령어
+
+```bash
 # 테스트
 pnpm run test
 
@@ -41,6 +67,52 @@ pnpm run lint
 
 # 포매팅
 pnpm run format
+```
+
+## 프론트엔드-백엔드 통합 구조
+
+### 포트 운영 방식
+
+#### 개발 모드 (Development)
+- **백엔드**: NestJS 서버가 포트 3000에서 API만 제공
+- **프론트엔드**: Vite Dev Server가 포트 5173에서 실행 (HMR 지원)
+- **프록시**: Vite가 `/api/*`, `/agent/*`, `/search/*`, `/indexing/*` 요청을 백엔드(3000)로 프록시
+
+```typescript
+// frontend/vite.config.ts
+server: {
+  port: 5173,
+  proxy: {
+    '/api': 'http://localhost:3000',
+    '/agent': 'http://localhost:3000',
+    // ...
+  }
+}
+```
+
+#### 프로덕션 모드 (Production)
+- **통합 포트**: NestJS 서버가 포트 3000에서 백엔드 + 프론트엔드 모두 제공
+- **정적 파일 서빙**: `@nestjs/serve-static`이 빌드된 프론트엔드(`frontend/dist`)를 제공
+- **라우팅 분리**:
+  - API 경로: `/api/*`, `/agent/*`, `/search/*`, `/indexing/*`
+  - 프론트엔드: `/*` (나머지 모든 경로)
+
+```typescript
+// src/app.module.ts
+ServeStaticModule.forRoot({
+  rootPath: join(__dirname, '..', '..', 'frontend', 'dist'),
+  exclude: ['/api*', '/agent*', '/search*', '/indexing*'],
+})
+```
+
+### 환경 변수
+
+#### 프론트엔드 환경 변수
+- **개발**: `frontend/.env.development`
+- **프로덕션**: `frontend/.env.production`
+
+```env
+VITE_API_URL=http://localhost:3000
 ```
 
 ## 아키텍처 구조

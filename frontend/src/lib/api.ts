@@ -1,6 +1,8 @@
 import axios from 'axios';
 
 // API Base URL (Vite 환경 변수)
+// 개발 환경: Vite Dev Server(5173)에서 프록시를 통해 백엔드(3000)로 요청
+// 프로덕션 환경: 빌드된 정적 파일이 NestJS(3000)에서 서빙되므로 같은 포트 사용
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 // Axios 인스턴스 생성

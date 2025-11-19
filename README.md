@@ -203,18 +203,41 @@ cp .env.example .env
 
 ### 실행
 
+#### 개발 모드 (Development)
+
+개발 환경에서는 백엔드와 프론트엔드를 **별도 포트**로 실행하여 HMR(Hot Module Replacement)을 활용합니다.
+
 ```bash
-# 개발 서버 시작 (Watch 모드)
-pnpm run start:dev
+# 방법 1: 백엔드 + 프론트엔드 동시 실행 (권장)
+pnpm dev
 
-# 프로덕션 빌드
-pnpm run build
+# 방법 2: 각각 실행 (디버깅 시)
+pnpm run start:dev          # 백엔드 (포트 3000)
+pnpm run dev:frontend       # 프론트엔드 (포트 5173)
+```
 
-# 프로덕션 서버 실행
+**접속 URL**:
+- 백엔드 API: `http://localhost:3000`
+- 프론트엔드: `http://localhost:5173` (Vite Dev Server)
+- API 문서: `http://localhost:3000/api`
+
+#### 프로덕션 모드 (Production)
+
+프로덕션 환경에서는 프론트엔드를 빌드하여 NestJS에서 정적 파일로 서빙합니다. **단일 포트(3000)**로 통합 운영됩니다.
+
+```bash
+# 1. 프론트엔드 + 백엔드 빌드
+pnpm run build:all
+
+# 2. 프로덕션 서버 실행
 pnpm run start:prod
 ```
 
-서버가 시작되면 `http://localhost:3000`에서 접근 가능합니다.
+**접속 URL**:
+- 통합 서버: `http://localhost:3000` (백엔드 + 프론트엔드)
+- API 경로: `http://localhost:3000/api/*`
+
+> **💡 Tip**: 개발 환경에서는 Vite의 프록시 설정을 통해 `/api/*` 요청이 자동으로 백엔드(3000)로 전달됩니다.
 
 ### API 테스트
 
@@ -318,7 +341,9 @@ curl -X POST http://localhost:3000/query \
 - 질의 히스토리 저장/재실행/삭제
 - 실시간 메트릭 모니터링
 
-**접속 방법**: `http://localhost:3000` (NestJS 서버와 동일 포트)
+**접속 방법**:
+- 프로덕션: `http://localhost:3000` (NestJS 서버와 통합)
+- 개발: `http://localhost:5173` (Vite Dev Server)
 
 **상세 가이드**: [docs/phases/04-Dashboard.md](./docs/phases/04-Dashboard.md)
 
@@ -361,17 +386,23 @@ curl -X POST http://localhost:3000/query \
 
 **개발 명령어**:
 ```bash
-# 프론트엔드만 개발
-yarn dev:frontend
+# 개발 모드: 백엔드 + 프론트엔드 동시 실행
+yarn dev
 
-# 프론트엔드 + 백엔드 빌드
-yarn build:all
+# 또는 개별 실행
+yarn start:dev        # 백엔드만 (포트 3000)
+yarn dev:frontend     # 프론트엔드만 (포트 5173)
+
+# 프로덕션 빌드
+yarn build:all        # 프론트엔드 + 백엔드 빌드
 
 # 프로덕션 실행
-yarn start:prod
+yarn start:prod       # 통합 서버 실행 (포트 3000)
 ```
 
-**접속 방법**: `http://localhost:3000` (NestJS가 프론트엔드 빌드 파일 제공)
+**접속 방법**:
+- **개발**: `http://localhost:5173` (Vite Dev Server - HMR 지원)
+- **프로덕션**: `http://localhost:3000` (NestJS가 프론트엔드 빌드 파일 제공)
 
 **상세 가이드**: [docs/phases/06-Frontend-Dashboard.md](./docs/phases/06-Frontend-Dashboard.md)
 
@@ -461,16 +492,23 @@ AI가 데이터 특성을 분석하여 최적의 시각화 방법을 추천합�
 
 **개발 명령어**:
 ```bash
-# 백엔드 개발 서버
-yarn start:dev
+# 개발 모드: 백엔드 + 프론트엔드 동시 실행 (권장)
+yarn dev
 
-# 프론트엔드 개발 서버
-cd frontend && yarn dev
-
-# 통합 테스트
-# 1. 완전한 질의: "최근 30일간 가장 많이 팔린 상품 Top 10은?"
-# 2. 불완전한 질의: "가장 많이 팔린 상품은?" → 추가 질문 → 재질의
+# 또는 개별 실행 (디버깅 시)
+yarn start:dev        # 백엔드 (포트 3000)
+yarn dev:frontend     # 프론트엔드 (포트 5173)
 ```
+
+**통합 테스트 시나리오**:
+1. 완전한 질의: "최근 30일간 가장 많이 팔린 상품 Top 10은?"
+   → AI 인사이트 6가지 유형 + 자동 시각화 선택
+2. 불완전한 질의: "가장 많이 팔린 상품은?"
+   → 추가 질문 모달 → 재질의 → AI 인사이트 생성
+
+**접속 URL**:
+- 개발: `http://localhost:5173` (Vite Dev Server)
+- 프로덕션: `http://localhost:3000` (통합 서버)
 
 **테스트 결과**:
 - ✅ 질의 분석 및 추가 질문 생성
