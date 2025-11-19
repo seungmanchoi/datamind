@@ -282,7 +282,10 @@ export default function QueryPage() {
 
               {/* 비교 분석 */}
               {result.insights.comparison && (
-                <div className="relative bg-gradient-to-r from-blue-50/80 to-white p-5 rounded-xl border-l-[6px] border-blue-600 shadow-sm hover:shadow-md transition-all">
+                <div
+                  className="relative bg-gradient-to-r from-blue-50/80 to-white p-5 rounded-xl shadow-sm hover:shadow-md transition-all"
+                  style={{ borderLeft: '6px solid #2563eb' }}
+                >
                   <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
                     <div className="bg-blue-500 p-2 rounded-lg">
                       <BarChart3 className="w-4 h-4 text-white" />
@@ -295,7 +298,10 @@ export default function QueryPage() {
 
               {/* 트렌드 */}
               {result.insights.trend && (
-                <div className="relative bg-gradient-to-r from-emerald-50/80 to-white p-5 rounded-xl border-l-[6px] border-emerald-600 shadow-sm hover:shadow-md transition-all">
+                <div
+                  className="relative bg-gradient-to-r from-emerald-50/80 to-white p-5 rounded-xl shadow-sm hover:shadow-md transition-all"
+                  style={{ borderLeft: '6px solid #059669' }}
+                >
                   <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
                     <div className="bg-emerald-500 p-2 rounded-lg">
                       <TrendingUp className="w-4 h-4 text-white" />
@@ -308,7 +314,10 @@ export default function QueryPage() {
 
               {/* 이상치/특이사항 */}
               {result.insights.anomaly && (
-                <div className="relative bg-gradient-to-r from-amber-50/80 to-white p-5 rounded-xl border-l-[6px] border-amber-600 shadow-sm hover:shadow-md transition-all">
+                <div
+                  className="relative bg-gradient-to-r from-amber-50/80 to-white p-5 rounded-xl shadow-sm hover:shadow-md transition-all"
+                  style={{ borderLeft: '6px solid #d97706' }}
+                >
                   <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
                     <div className="bg-amber-500 p-2 rounded-lg">
                       <AlertCircle className="w-4 h-4 text-white" />
@@ -321,7 +330,10 @@ export default function QueryPage() {
 
               {/* 추천 사항 */}
               {result.insights.recommendation && (
-                <div className="relative bg-gradient-to-r from-indigo-50/80 to-white p-5 rounded-xl border-l-[6px] border-indigo-600 shadow-sm hover:shadow-md transition-all">
+                <div
+                  className="relative bg-gradient-to-r from-indigo-50/80 to-white p-5 rounded-xl shadow-sm hover:shadow-md transition-all"
+                  style={{ borderLeft: '6px solid #4f46e5' }}
+                >
                   <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
                     <div className="bg-indigo-500 p-2 rounded-lg">
                       <Lightbulb className="w-4 h-4 text-white" />
