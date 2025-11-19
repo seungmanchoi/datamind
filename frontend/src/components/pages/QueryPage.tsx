@@ -95,40 +95,41 @@ export default function QueryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-100">
-        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-2">
-          <Bot className="w-6 h-6 text-blue-600" />
-          AI 자연어 질의 (Phase 7 Enhanced)
+      <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl border border-gray-200/50 shadow-sm">
+        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3 mb-3">
+          <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2.5 rounded-xl">
+            <Bot className="w-5 h-5 text-white" />
+          </div>
+          AI 자연어 질의
         </h2>
-        <p className="text-gray-600">
-          자연어로 데이터를 질의하면 AI가 자동으로 시각화 방법을 결정하고 풍부한 인사이트를
-          제공합니다. ✨
+        <p className="text-gray-600 leading-relaxed">
+          자연어로 데이터를 질의하면 AI가 자동으로 시각화 방법을 결정하고 풍부한 인사이트를 제공합니다.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex gap-2">
+      <form onSubmit={handleSubmit} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-sm p-6 space-y-4">
+        <div className="flex gap-3">
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="예: 최근 30일간 가장 많이 팔린 상품은? (기간/개수 등을 생략하면 AI가 추가 질문을 합니다)"
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="예: 최근 30일간 가장 많이 팔린 상품은?"
+            className="flex-1 px-5 py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all bg-white/80"
             disabled={queryMutation.isPending}
           />
           <button
             type="submit"
             disabled={queryMutation.isPending || !query.trim()}
             className={cn(
-              'px-6 py-3 bg-blue-600 text-white rounded-lg font-medium',
-              'hover:bg-blue-700 transition-colors flex items-center gap-2',
-              'disabled:opacity-50 disabled:cursor-not-allowed'
+              'px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium',
+              'hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center gap-2',
+              'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none'
             )}
           >
             {queryMutation.isPending ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                분석 중...
+                분석 중
               </>
             ) : (
               <>
@@ -140,16 +141,16 @@ export default function QueryPage() {
         </div>
 
         {/* 프리셋 예제 버튼 */}
-        <div className="flex flex-wrap gap-2">
-          <span className="text-sm text-gray-600 self-center mr-2">예제 질의:</span>
+        <div className="flex flex-wrap gap-2 pt-2">
+          <span className="text-sm text-gray-500 self-center mr-1 font-medium">빠른 질의:</span>
           {exampleQueries.map((example, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => handleExampleClick(example)}
-              className="px-3 py-1.5 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700
-                       hover:text-blue-800 rounded-md border border-blue-200
-                       transition-colors duration-200"
+              className="px-4 py-2 text-sm bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100
+                       text-gray-700 hover:text-gray-900 rounded-lg border border-gray-200/50
+                       transition-all duration-200 hover:shadow-sm"
               disabled={queryMutation.isPending}
             >
               {example}
@@ -159,37 +160,39 @@ export default function QueryPage() {
       </form>
 
       {queryMutation.isPending && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-2" />
-          <p className="text-blue-700 font-medium">AI가 분석 중입니다...</p>
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/50 rounded-2xl p-8 text-center">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto mb-3" />
+          <p className="text-blue-700 font-medium text-lg">AI가 분석 중입니다...</p>
         </div>
       )}
 
       {/* Phase 7: 추가 질문 모달 */}
       {showClarifyingModal && result?.clarifyingQuestions && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-blue-600" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-6 border-b border-gray-200/50 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-3">
+                <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-xl">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
                 질문을 좀 더 구체화해주세요
               </h3>
               <button
                 onClick={() => setShowClarifyingModal(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-6 space-y-6">
-              <p className="text-gray-600 bg-blue-50 p-3 rounded border border-blue-100">
+              <p className="text-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200/50">
                 {result.clarifyingQuestions.reason}
               </p>
 
               {result.clarifyingQuestions.questions.map((question, index) => (
                 <div key={index} className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-semibold text-gray-700">
                     {question.question}
                   </label>
                   <select
@@ -197,7 +200,7 @@ export default function QueryPage() {
                     onChange={(e) =>
                       setClarifyingAnswers({ ...clarifyingAnswers, [index]: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all bg-white"
                   >
                     {question.options.map((option) => (
                       <option key={option} value={option}>
@@ -209,16 +212,16 @@ export default function QueryPage() {
               ))}
             </div>
 
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+            <div className="p-6 border-t border-gray-200/50 flex justify-end gap-3">
               <button
                 onClick={() => setShowClarifyingModal(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="px-5 py-2.5 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all"
               >
                 취소
               </button>
               <button
                 onClick={handleClarifyingSubmit}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center gap-2"
               >
                 <Search className="w-4 h-4" />
                 다시 질의하기
@@ -229,46 +232,48 @@ export default function QueryPage() {
       )}
 
       {result && !result.clarifyingQuestions && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-6">
+        <div className="bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-8 space-y-6 shadow-sm">
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">질의</h3>
-            <p className="text-gray-700 bg-gray-50 p-3 rounded">{result.query}</p>
+            <h3 className="text-lg font-bold text-gray-800 mb-3">질의</h3>
+            <p className="text-gray-700 bg-gradient-to-r from-gray-50 to-blue-50/30 p-4 rounded-xl border border-gray-200/50">{result.query}</p>
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">생성된 SQL</h3>
-            <pre className="bg-gray-900 text-gray-100 p-4 rounded overflow-x-auto">
+            <h3 className="text-lg font-bold text-gray-800 mb-3">생성된 SQL</h3>
+            <pre className="bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 p-5 rounded-xl overflow-x-auto border border-gray-700">
               <code>{result.sql}</code>
             </pre>
           </div>
 
           {/* Phase 7: 화려한 인사이트 표시 */}
           {result.insights && (
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-lg border border-purple-200 space-y-4">
-              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <Sparkles className="w-6 h-6 text-purple-600" />
+            <div className="bg-gradient-to-br from-violet-50 to-purple-50 p-8 rounded-2xl border border-violet-200/50 space-y-5 shadow-sm">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-3">
+                <div className="bg-gradient-to-br from-violet-600 to-purple-600 p-2.5 rounded-xl">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
                 AI 인사이트
               </h3>
 
               {/* 요약 */}
-              <div className="bg-white bg-opacity-80 p-4 rounded-lg">
+              <div className="bg-white/90 backdrop-blur-sm p-5 rounded-xl border border-violet-200/50">
                 <p className="text-gray-800 text-lg leading-relaxed">{result.insights.summary}</p>
               </div>
 
               {/* 핵심 발견사항 */}
               {result.insights.keyFindings.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2 uppercase tracking-wide">
+                  <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
                     핵심 발견사항
                   </h4>
-                  <ul className="space-y-2">
+                  <ul className="space-y-2.5">
                     {result.insights.keyFindings.map((finding, idx) => (
                       <li
                         key={idx}
-                        className="bg-white bg-opacity-80 p-3 rounded-lg text-gray-800 flex items-start gap-2"
+                        className="bg-white/90 backdrop-blur-sm p-4 rounded-xl text-gray-800 flex items-start gap-3 border border-violet-200/30 hover:border-violet-300/50 transition-colors"
                       >
-                        <span className="text-xl mt-0.5">{finding.split(' ')[0]}</span>
-                        <span>{finding.substring(finding.indexOf(' ') + 1)}</span>
+                        <span className="text-2xl">{finding.split(' ')[0]}</span>
+                        <span className="leading-relaxed">{finding.substring(finding.indexOf(' ') + 1)}</span>
                       </li>
                     ))}
                   </ul>
@@ -277,45 +282,45 @@ export default function QueryPage() {
 
               {/* 비교 분석 */}
               {result.insights.comparison && (
-                <div className="bg-blue-50 bg-opacity-80 p-4 rounded-lg border border-blue-200">
-                  <h4 className="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-1">
+                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-5 rounded-xl border border-blue-200/50">
+                  <h4 className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
                     <BarChart3 className="w-4 h-4" />
                     비교 분석
                   </h4>
-                  <p className="text-blue-900">{result.insights.comparison}</p>
+                  <p className="text-blue-900 leading-relaxed">{result.insights.comparison}</p>
                 </div>
               )}
 
               {/* 트렌드 */}
               {result.insights.trend && (
-                <div className="bg-green-50 bg-opacity-80 p-4 rounded-lg border border-green-200">
-                  <h4 className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-1">
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-5 rounded-xl border border-green-200/50">
+                  <h4 className="text-sm font-bold text-green-800 mb-2 flex items-center gap-2">
                     <TrendingUp className="w-4 h-4" />
                     트렌드
                   </h4>
-                  <p className="text-green-900">{result.insights.trend}</p>
+                  <p className="text-green-900 leading-relaxed">{result.insights.trend}</p>
                 </div>
               )}
 
               {/* 이상치/특이사항 */}
               {result.insights.anomaly && (
-                <div className="bg-yellow-50 bg-opacity-80 p-4 rounded-lg border border-yellow-300">
-                  <h4 className="text-sm font-semibold text-yellow-800 mb-2 flex items-center gap-1">
+                <div className="bg-gradient-to-r from-yellow-50 to-amber-50 p-5 rounded-xl border border-yellow-200/50">
+                  <h4 className="text-sm font-bold text-yellow-800 mb-2 flex items-center gap-2">
                     <AlertCircle className="w-4 h-4" />
                     특이사항
                   </h4>
-                  <p className="text-yellow-900">{result.insights.anomaly}</p>
+                  <p className="text-yellow-900 leading-relaxed">{result.insights.anomaly}</p>
                 </div>
               )}
 
               {/* 추천 사항 */}
               {result.insights.recommendation && (
-                <div className="bg-indigo-50 bg-opacity-80 p-4 rounded-lg border border-indigo-200">
-                  <h4 className="text-sm font-semibold text-indigo-800 mb-2 flex items-center gap-1">
+                <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-5 rounded-xl border border-indigo-200/50">
+                  <h4 className="text-sm font-bold text-indigo-800 mb-2 flex items-center gap-2">
                     <Lightbulb className="w-4 h-4" />
                     추천 사항
                   </h4>
-                  <p className="text-indigo-900">{result.insights.recommendation}</p>
+                  <p className="text-indigo-900 leading-relaxed">{result.insights.recommendation}</p>
                 </div>
               )}
             </div>
@@ -340,9 +345,9 @@ export default function QueryPage() {
                   <button
                     onClick={() => setChartType('bar')}
                     className={cn(
-                      'px-3 py-1.5 text-sm rounded transition-colors flex items-center gap-1',
+                      'px-4 py-2 text-sm rounded-xl transition-all flex items-center gap-2 font-medium',
                       chartType === 'bar'
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     )}
                   >
@@ -352,9 +357,9 @@ export default function QueryPage() {
                   <button
                     onClick={() => setChartType('line')}
                     className={cn(
-                      'px-3 py-1.5 text-sm rounded transition-colors flex items-center gap-1',
+                      'px-4 py-2 text-sm rounded-xl transition-all flex items-center gap-2 font-medium',
                       chartType === 'line'
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     )}
                   >
@@ -364,9 +369,9 @@ export default function QueryPage() {
                   <button
                     onClick={() => setChartType('pie')}
                     className={cn(
-                      'px-3 py-1.5 text-sm rounded transition-colors flex items-center gap-1',
+                      'px-4 py-2 text-sm rounded-xl transition-all flex items-center gap-2 font-medium',
                       chartType === 'pie'
-                        ? 'bg-blue-600 text-white'
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     )}
                   >
@@ -386,24 +391,24 @@ export default function QueryPage() {
               {(result.visualization?.type === 'table' ||
                 result.visualization?.type === 'both' ||
                 !result.visualization) && (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 border">
-                    <thead className="bg-gray-50">
+                <div className="overflow-x-auto rounded-xl border border-gray-200/50">
+                  <table className="min-w-full divide-y divide-gray-200/50">
+                    <thead className="bg-gradient-to-r from-gray-50 to-blue-50/30">
                       <tr>
                         {Object.keys(result.results[0]).map((key) => (
                           <th
                             key={key}
-                            className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                            className="px-5 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
                           >
                             {key}
                           </th>
                         ))}
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="bg-white/80 divide-y divide-gray-200/30">
                       {result.results.map((row, idx) => {
                         return (
-                          <tr key={idx} className="hover:bg-gray-50">
+                          <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                             {Object.entries(row).map(([key, value], cellIdx) => {
                               // 금액 필드인지 확인
                               const isCurrency =
@@ -433,7 +438,7 @@ export default function QueryPage() {
                                 <td
                                   key={cellIdx}
                                   className={cn(
-                                    'px-4 py-3 text-sm text-gray-700',
+                                    'px-5 py-4 text-sm text-gray-700 font-medium',
                                     isNumeric ? 'text-right whitespace-nowrap' : 'whitespace-nowrap',
                                   )}
                                 >

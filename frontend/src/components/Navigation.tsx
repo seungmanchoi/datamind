@@ -17,9 +17,9 @@ const navItems = [
 
 export default function Navigation({ currentPage, onPageChange }: NavigationProps) {
   return (
-    <nav className="bg-white shadow-md border-b">
-      <div className="container mx-auto px-4">
-        <div className="flex gap-2 overflow-x-auto">
+    <nav className="bg-white/60 backdrop-blur-md border-b border-gray-200/50">
+      <div className="container mx-auto px-6 py-3">
+        <div className="flex gap-3 overflow-x-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id;
@@ -29,14 +29,13 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
                 key={item.id}
                 onClick={() => onPageChange(item.id)}
                 className={cn(
-                  'flex items-center gap-2 px-6 py-4 font-medium transition-colors whitespace-nowrap',
-                  'border-b-2 hover:bg-gray-50',
+                  'flex items-center gap-2 px-5 py-2.5 font-medium transition-all whitespace-nowrap rounded-xl',
                   isActive
-                    ? 'text-blue-600 border-blue-600'
-                    : 'text-gray-600 border-transparent hover:text-gray-900'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30'
+                    : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
                 )}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="w-4 h-4" />
                 {item.label}
               </button>
             );

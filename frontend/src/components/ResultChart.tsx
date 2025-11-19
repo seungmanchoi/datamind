@@ -154,11 +154,11 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
     };
 
     return (
-      <div className="mt-4">
-        <h4 className="text-sm font-semibold text-gray-700 mb-2">
-          데이터 시각화 (Pie Chart)
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 shadow-sm">
+        <h4 className="text-base font-bold text-gray-800 mb-4">
+          데이터 시각화
         </h4>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={320}>
           <PieChart>
             <Pie
               data={pieData}
@@ -185,11 +185,11 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
 
   if (type === 'line') {
     return (
-      <div className="mt-4">
-        <h4 className="text-sm font-semibold text-gray-700 mb-2">
-          데이터 시각화 (Line Chart)
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 shadow-sm">
+        <h4 className="text-base font-bold text-gray-800 mb-4">
+          데이터 시각화
         </h4>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={320}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
@@ -213,11 +213,11 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
 
   // Bar 차트 (기본)
   return (
-    <div className="mt-4">
-      <h4 className="text-sm font-semibold text-gray-700 mb-2">
-        데이터 시각화 (Bar Chart)
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 shadow-sm">
+      <h4 className="text-base font-bold text-gray-800 mb-4">
+        데이터 시각화
       </h4>
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={320}>
         <BarChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
