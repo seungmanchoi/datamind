@@ -86,7 +86,7 @@ export default function QueryPage() {
     '최근 30일간 가장 많이 팔린 상품 10개는?',
     '오투 매장의 이번 달 매출은 얼마인가요?',
     '카테고리별 평균 판매가는?',
-    '재고가 10개 미만인 상품 목록',
+    '1개만 구매 가능한 상품 추천',
   ];
 
   const handleExampleClick = (exampleQuery: string) => {
