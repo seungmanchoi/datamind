@@ -75,7 +75,7 @@ export class QueryMapper {
   private mapClarifyingQuestions(questions: {
     reason: string;
     questions: Array<{
-      type: 'period' | 'limit' | 'filter' | 'grouping';
+      type: 'period' | 'limit' | 'filter' | 'grouping' | 'category';
       question: string;
       options: string[];
       default: string;

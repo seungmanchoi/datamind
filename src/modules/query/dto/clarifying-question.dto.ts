@@ -10,9 +10,10 @@ export class ClarifyingQuestionItemDto {
    * - limit: 개수 제한 질문 (예: "상위 몇 개를 보여드릴까요?")
    * - filter: 필터링 질문 (예: "특정 카테고리로 한정하시겠습니까?")
    * - grouping: 그룹화 질문 (예: "일별, 주별, 월별 중 어떻게 보시겠습니까?")
+   * - category: 카테고리 선택 질문 (예: "어떤 카테고리의 상품을 보시겠습니까?")
    */
-  @IsEnum(['period', 'limit', 'filter', 'grouping'])
-  type: 'period' | 'limit' | 'filter' | 'grouping';
+  @IsEnum(['period', 'limit', 'filter', 'grouping', 'category'])
+  type: 'period' | 'limit' | 'filter' | 'grouping' | 'category';
 
   /**
    * 질문 내용
