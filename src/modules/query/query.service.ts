@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
+import { getRelevantExamples } from '@/agents/config/fewshot-examples';
 import { BedrockService } from '@/common/bedrock.service';
 import { buildTextToSQLPrompt } from '@/prompts/text-to-sql.prompt';
 
@@ -107,9 +108,25 @@ export class QueryService {
     this.logger.log(`Step 2: Generating SQL for query: ${userQuery}`);
 
     const schema = await this.queryRepository.getSchema();
+
+    // Few-shot 예제 선택 (관련도 높은 상위 5개)
+    const relevantExamples = getRelevantExamples(userQuery, 5);
+    const fewShotExamples = relevantExamples
+      .map(
+        (example, index) => `
+Example ${index + 1}:
+Question: "${example.question}"
+SQL: ${example.sql}
+${example.description ? `Note: ${example.description}` : ''}`,
+      )
+      .join('\n');
+
+    this.logger.log(`Selected ${relevantExamples.length} relevant few-shot examples`);
+
     const { system, user } = buildTextToSQLPrompt({
       schema,
       query: userQuery,
+      fewShotExamples,
     });
 
     const response = await this.bedrockService.invokeModel(
