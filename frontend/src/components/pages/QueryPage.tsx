@@ -282,45 +282,53 @@ export default function QueryPage() {
 
               {/* 비교 분석 */}
               {result.insights.comparison && (
-                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-5 rounded-xl border border-blue-200/50">
-                  <h4 className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4" />
+                <div className="bg-white/90 backdrop-blur-sm p-5 rounded-xl border-l-4 border-blue-500 shadow-sm hover:shadow-md transition-shadow">
+                  <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <div className="bg-blue-100 p-1.5 rounded-lg">
+                      <BarChart3 className="w-4 h-4 text-blue-600" />
+                    </div>
                     비교 분석
                   </h4>
-                  <p className="text-blue-900 leading-relaxed">{result.insights.comparison}</p>
+                  <p className="text-gray-700 leading-relaxed">{result.insights.comparison}</p>
                 </div>
               )}
 
               {/* 트렌드 */}
               {result.insights.trend && (
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-5 rounded-xl border border-green-200/50">
-                  <h4 className="text-sm font-bold text-green-800 mb-2 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4" />
+                <div className="bg-white/90 backdrop-blur-sm p-5 rounded-xl border-l-4 border-emerald-500 shadow-sm hover:shadow-md transition-shadow">
+                  <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <div className="bg-emerald-100 p-1.5 rounded-lg">
+                      <TrendingUp className="w-4 h-4 text-emerald-600" />
+                    </div>
                     트렌드
                   </h4>
-                  <p className="text-green-900 leading-relaxed">{result.insights.trend}</p>
+                  <p className="text-gray-700 leading-relaxed">{result.insights.trend}</p>
                 </div>
               )}
 
               {/* 이상치/특이사항 */}
               {result.insights.anomaly && (
-                <div className="bg-gradient-to-r from-yellow-50 to-amber-50 p-5 rounded-xl border border-yellow-200/50">
-                  <h4 className="text-sm font-bold text-yellow-800 mb-2 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4" />
+                <div className="bg-white/90 backdrop-blur-sm p-5 rounded-xl border-l-4 border-amber-500 shadow-sm hover:shadow-md transition-shadow">
+                  <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <div className="bg-amber-100 p-1.5 rounded-lg">
+                      <AlertCircle className="w-4 h-4 text-amber-600" />
+                    </div>
                     특이사항
                   </h4>
-                  <p className="text-yellow-900 leading-relaxed">{result.insights.anomaly}</p>
+                  <p className="text-gray-700 leading-relaxed">{result.insights.anomaly}</p>
                 </div>
               )}
 
               {/* 추천 사항 */}
               {result.insights.recommendation && (
-                <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-5 rounded-xl border border-indigo-200/50">
-                  <h4 className="text-sm font-bold text-indigo-800 mb-2 flex items-center gap-2">
-                    <Lightbulb className="w-4 h-4" />
+                <div className="bg-white/90 backdrop-blur-sm p-5 rounded-xl border-l-4 border-indigo-500 shadow-sm hover:shadow-md transition-shadow">
+                  <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <div className="bg-indigo-100 p-1.5 rounded-lg">
+                      <Lightbulb className="w-4 h-4 text-indigo-600" />
+                    </div>
                     추천 사항
                   </h4>
-                  <p className="text-indigo-900 leading-relaxed">{result.insights.recommendation}</p>
+                  <p className="text-gray-700 leading-relaxed">{result.insights.recommendation}</p>
                 </div>
               )}
             </div>
