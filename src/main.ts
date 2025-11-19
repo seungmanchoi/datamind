@@ -21,7 +21,11 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  console.log(`🚀 Application is running on: http://localhost:${port}`);
+  console.log('\n' + '='.repeat(60));
+  console.log(`🚀 Backend API is running on: http://localhost:${port}`);
+  console.log(`📊 Dashboard is running on: http://localhost:5173`);
+  console.log(`📚 API Documentation: http://localhost:${port}/api`);
+  console.log('='.repeat(60) + '\n');
 }
 
 bootstrap();
