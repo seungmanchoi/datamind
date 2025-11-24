@@ -30,7 +30,8 @@ export class OpenSearchService implements OnModuleInit {
   }
 
   /**
-   * IAM 인증을 사용하여 OpenSearch 클라이언트 초기화
+   * IAM 전용 인증 사용 (Signature V4)
+   * Fine-grained access control의 Role Mapping을 통해 IAM 사용자에게 권한 부여
    */
   private async initializeClient(): Promise<void> {
     const config = this.configService.get('opensearch');
@@ -47,10 +48,11 @@ export class OpenSearchService implements OnModuleInit {
           },
         }),
         node: config.node,
+        // Basic Auth 제거 - IAM 인증만 사용
         ssl: config.ssl,
       });
 
-      this.logger.log(`OpenSearch client initialized with IAM auth: ${config.node}`);
+      this.logger.log(`OpenSearch client initialized with IAM-only auth: ${config.node}`);
     } catch (error) {
       this.logger.error(`Failed to initialize OpenSearch client: ${error instanceof Error ? error.message : 'Unknown error'}`);
       throw error;
@@ -76,7 +78,7 @@ export class OpenSearchService implements OnModuleInit {
               index: {
                 knn: true,
                 number_of_shards: 1,
-                number_of_replicas: 1,
+                number_of_replicas: 2, // Zone awareness 3개 AZ 대응 (1 shard + 2 replicas = 3 copies)
               },
             },
             mappings: {
@@ -92,7 +94,7 @@ export class OpenSearchService implements OnModuleInit {
                   method: {
                     name: 'hnsw',
                     space_type: 'l2',
-                    engine: 'nmslib',
+                    engine: 'lucene', // OpenSearch 3.0+ 호환 (nmslib deprecated)
                     parameters: {
                       ef_construction: 128,
                       m: 16,
