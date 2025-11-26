@@ -3,6 +3,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 
 import { SearchService } from '@/modules/search/search.service';
+import { RagService } from '@/rag/rag.service';
 
 import { createBedrockChatModel } from './config/langchain.config';
 import { initializeState } from './state';
@@ -19,11 +20,12 @@ export class AgentService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly searchService: SearchService,
+    private readonly ragService: RagService,
   ) {
     this.chatModel = createBedrockChatModel();
     this.sqlExecutor = new SqlExecutorTool(dataSource);
     this.schemaRetrieval = new SchemaRetrievalTool(dataSource);
-    this.logger.log('AgentService initialized with Bedrock ChatModel and Tools');
+    this.logger.log('AgentService initialized with Bedrock ChatModel, Tools, and RAG Service');
   }
 
   /**
@@ -88,13 +90,14 @@ export class AgentService {
       // State 초기화
       const initialState = initializeState(query);
 
-      // 워크플로우 실행 (Tool과 LLM을 config로 전달)
+      // 워크플로우 실행 (Tool, LLM, RagService를 config로 전달)
       const result = await workflow.invoke(initialState, {
         configurable: {
           chatModel: this.chatModel,
           sqlExecutor: this.sqlExecutor,
           schemaRetrieval: this.schemaRetrieval,
           searchService: this.searchService,
+          ragService: this.ragService,
         },
       });
 

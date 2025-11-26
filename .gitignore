@@ -33,3 +33,7 @@ coverage/
 
 # Claude Code settings
 .claude/settings.local.json
+
+# Project specific - exclude from repository
+scripts/
+docs/

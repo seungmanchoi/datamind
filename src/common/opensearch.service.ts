@@ -1,7 +1,7 @@
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Client } from '@opensearch-project/opensearch';
-import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { AwsSigv4Signer } from '@opensearch-project/opensearch/aws';
 
 /**
@@ -54,7 +54,9 @@ export class OpenSearchService implements OnModuleInit {
 
       this.logger.log(`OpenSearch client initialized with IAM-only auth: ${config.node}`);
     } catch (error) {
-      this.logger.error(`Failed to initialize OpenSearch client: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.error(
+        `Failed to initialize OpenSearch client: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       throw error;
     }
   }

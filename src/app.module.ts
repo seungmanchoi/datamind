@@ -16,6 +16,7 @@ import opensearchConfig from './config/opensearch.config';
 import { IndexingModule } from './modules/indexing/indexing.module';
 import { QueryModule } from './modules/query/query.module';
 import { SearchModule } from './modules/search/search.module';
+import { RagModule } from './rag/rag.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { SearchModule } from './modules/search/search.module';
     AgentsModule,
     IndexingModule,
     SearchModule,
+    RagModule,
   ],
   controllers: [AppController],
   providers: [AppService, BedrockService, EmbeddingsService, OpenSearchService],

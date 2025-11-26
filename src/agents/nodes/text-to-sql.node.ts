@@ -1,6 +1,8 @@
 import { BedrockChat } from '@langchain/community/chat_models/bedrock';
 import { RunnableConfig } from '@langchain/core/runnables';
 
+import { RagService } from '@/rag/rag.service';
+
 import { formatFewShotExamples, getRelevantExamples } from '../config/fewshot-examples';
 import { AgentStateType, setSqlQuery } from '../state';
 import { SchemaRetrievalTool } from '../tools';
@@ -12,16 +14,17 @@ import { SchemaRetrievalTool } from '../tools';
 export async function textToSqlNode(state: AgentStateType, config?: RunnableConfig): Promise<Partial<AgentStateType>> {
   const { input } = state;
 
-  // Tool과 LLM을 config에서 가져옴 (나중에 구현)
+  // Tool, LLM, RagService를 config에서 가져옴
   const schemaRetrieval = config?.configurable?.schemaRetrieval as SchemaRetrievalTool;
   const chatModel = config?.configurable?.chatModel as BedrockChat;
+  const ragService = config?.configurable?.ragService as RagService | undefined;
 
   try {
     // 1. 먼저 데이터베이스 스키마 조회
     const schemaInfo = await schemaRetrieval.invoke('');
 
-    // 2. Text-to-SQL 프롬프트 생성
-    const prompt = buildTextToSqlPrompt(input, schemaInfo);
+    // 2. Text-to-SQL 프롬프트 생성 (RAG 적용)
+    const prompt = await buildTextToSqlPrompt(input, schemaInfo, ragService);
 
     // 3. LLM을 통해 SQL 생성
     const response = await chatModel.invoke(prompt);
@@ -38,22 +41,73 @@ export async function textToSqlNode(state: AgentStateType, config?: RunnableConf
 }
 
 /**
- * Text-to-SQL 프롬프트 생성 (Few-Shot Learning 적용)
+ * Text-to-SQL 프롬프트 생성 (RAG + Few-Shot Learning 적용)
+ * RAG Service를 사용하여 OpenSearch에서 유사 SQL 예제를 동적으로 검색
  */
-function buildTextToSqlPrompt(userQuery: string, schemaInfo: string): string {
-  // 사용자 질의와 관련된 예제 3개 선택
-  const relevantExamples = getRelevantExamples(userQuery, 3);
-  const examplesText =
-    relevantExamples.length > 0
-      ? relevantExamples
+async function buildTextToSqlPrompt(userQuery: string, schemaInfo: string, ragService?: RagService): Promise<string> {
+  let examplesText: string;
+
+  // RAG Service를 사용할 수 있는 경우 벡터 검색으로 유사 예제 가져오기
+  if (ragService) {
+    try {
+      const ragContext = await ragService.getRagContext(userQuery, 5);
+
+      if (ragContext.examples.length > 0) {
+        // RAG로 검색된 예제를 Few-Shot 형식으로 포맷팅
+        examplesText = ragContext.examples
           .map(
             (ex, idx) => `
 Example ${idx + 1}:
-Question: "${ex.question}"
+Description: "${ex.description}"
 SQL: ${ex.sql}`,
           )
-          .join('\n')
-      : formatFewShotExamples();
+          .join('\n');
+      } else {
+        // RAG 결과가 없으면 하드코딩된 Few-Shot 예제 사용 (Fallback)
+        const relevantExamples = getRelevantExamples(userQuery, 3);
+        examplesText =
+          relevantExamples.length > 0
+            ? relevantExamples
+                .map(
+                  (ex, idx) => `
+Example ${idx + 1}:
+Question: "${ex.question}"
+SQL: ${ex.sql}`,
+                )
+                .join('\n')
+            : formatFewShotExamples();
+      }
+    } catch (error) {
+      // RAG 실패 시 기존 키워드 매칭 방식 사용 (Fallback)
+      console.error('RAG Service error, falling back to keyword matching:', error);
+      const relevantExamples = getRelevantExamples(userQuery, 3);
+      examplesText =
+        relevantExamples.length > 0
+          ? relevantExamples
+              .map(
+                (ex, idx) => `
+Example ${idx + 1}:
+Question: "${ex.question}"
+SQL: ${ex.sql}`,
+              )
+              .join('\n')
+          : formatFewShotExamples();
+    }
+  } else {
+    // RAG Service가 없으면 기존 키워드 매칭 방식 사용
+    const relevantExamples = getRelevantExamples(userQuery, 3);
+    examplesText =
+      relevantExamples.length > 0
+        ? relevantExamples
+            .map(
+              (ex, idx) => `
+Example ${idx + 1}:
+Question: "${ex.question}"
+SQL: ${ex.sql}`,
+            )
+            .join('\n')
+        : formatFewShotExamples();
+  }
 
   return `You are an expert SQL query generator for a MySQL database (NDMarket E-commerce Platform).
 

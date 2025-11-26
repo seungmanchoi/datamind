@@ -18,7 +18,19 @@
       "Bash(git push:*)",
       "mcp__mysql__list_tables",
       "mcp__mysql__describe_table",
-      "mcp__mysql__mysql_query"
+      "mcp__mysql__mysql_query",
+      "Skill(document-skills:docx)",
+      "Bash(pandoc:*)",
+      "Bash(python /Users/seungmanchoi/.claude/plugins/marketplaces/anthropic-agent-skills/document-skills/docx/ooxml/scripts/unpack.py:*)",
+      "Bash(pdftotext:*)",
+      "Bash(python3:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(cat:*)",
+      "Bash(pnpm run embed:sql-examples:*)",
+      "Bash(pnpm run verify:embeddings:*)",
+      "Bash(pnpm run test:rag:*)",
+      "Bash(.env)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
