@@ -1,7 +1,7 @@
 import { BedrockChat } from '@langchain/community/chat_models/bedrock';
 import { RunnableConfig } from '@langchain/core/runnables';
 
-import { AgentStateType, setSummary } from '../state';
+import { AgentStateType, setSummary } from '@/agents/state';
 
 /**
  * Insight Summarizer Node

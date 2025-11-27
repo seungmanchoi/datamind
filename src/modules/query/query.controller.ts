@@ -1,9 +1,9 @@
 import { Body, Controller, HttpCode, HttpStatus, Logger, Post } from '@nestjs/common';
 
-import { QueryRequestDto } from './dto/query-request.dto';
-import { QueryResponseDto } from './dto/query-response.dto';
-import { QueryMapper } from './query.mapper';
-import { QueryService } from './query.service';
+import { QueryRequestDto } from '@/modules/query/dto/query-request.dto';
+import { QueryResponseDto } from '@/modules/query/dto/query-response.dto';
+import { QueryMapper } from '@/modules/query/query.mapper';
+import { QueryService } from '@/modules/query/query.service';
 
 @Controller('query')
 export class QueryController {

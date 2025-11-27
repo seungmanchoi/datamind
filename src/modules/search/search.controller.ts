@@ -1,6 +1,6 @@
 import { Controller, Get, Logger, Param, Query } from '@nestjs/common';
 
-import { SearchService } from './search.service';
+import { SearchService } from '@/modules/search/search.service';
 
 /**
  * Search Controller
@@ -17,7 +17,7 @@ export class SearchController {
    * GET /search/semantic?q=여름용 시원한 셔츠&k=10
    */
   @Get('semantic')
-  async semanticSearch(@Query('q') query: string, @Query('k') topK?: string) {
+  async semanticSearch(@Query('query') query: string, @Query('k') topK?: string) {
     this.logger.log(`Semantic search request: "${query}"`);
 
     if (!query) {

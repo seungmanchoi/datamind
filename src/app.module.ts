@@ -4,19 +4,19 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
 
-import { AgentsModule } from './agents/agents.module';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { BedrockService } from './common/bedrock.service';
-import { EmbeddingsService } from './common/embeddings.service';
-import { OpenSearchService } from './common/opensearch.service';
-import { SecretsModule } from './common/secrets.module';
-import { SecretsService } from './common/secrets.service';
-import opensearchConfig from './config/opensearch.config';
-import { IndexingModule } from './modules/indexing/indexing.module';
-import { QueryModule } from './modules/query/query.module';
-import { SearchModule } from './modules/search/search.module';
-import { RagModule } from './rag/rag.module';
+import { AgentsModule } from '@/agents/agents.module';
+import { AppController } from '@/app.controller';
+import { AppService } from '@/app.service';
+import { BedrockService } from '@/common/bedrock.service';
+import { EmbeddingsService } from '@/common/embeddings.service';
+import { OpenSearchService } from '@/common/opensearch.service';
+import { SecretsModule } from '@/common/secrets.module';
+import { SecretsService } from '@/common/secrets.service';
+import opensearchConfig from '@/config/opensearch.config';
+import { IndexingModule } from '@/modules/indexing/indexing.module';
+import { QueryModule } from '@/modules/query/query.module';
+import { SearchModule } from '@/modules/search/search.module';
+import { RagModule } from '@/rag/rag.module';
 
 @Module({
   imports: [

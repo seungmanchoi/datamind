@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { getRelevantExamples } from '@/agents/config/fewshot-examples';
 import { BedrockService } from '@/common/bedrock.service';
+import { QueryRepository } from '@/modules/query/query.repository';
 import { buildTextToSQLPrompt } from '@/prompts/text-to-sql.prompt';
-
-import { QueryRepository } from './query.repository';
+import { RagService, SqlExample } from '@/rag/rag.service';
 
 /**
  * Phase 7 Enhanced Query Result
@@ -62,6 +62,7 @@ export class QueryService {
   constructor(
     private readonly bedrockService: BedrockService,
     private readonly queryRepository: QueryRepository,
+    private readonly ragService: RagService,
   ) {}
 
   /**
@@ -100,7 +101,28 @@ export class QueryService {
   }
 
   /**
+   * RAG 검색 결과를 상세 로깅
+   */
+  private logRagResults(query: string, examples: SqlExample[], source: 'RAG' | 'Fallback'): void {
+    this.logger.log('═'.repeat(60));
+    this.logger.log(`📊 Few-Shot Hint 검색 결과 (Source: ${source})`);
+    this.logger.log('─'.repeat(60));
+    this.logger.log(`🔍 User Query: "${query}"`);
+    this.logger.log(`📝 검색된 예제 수: ${examples.length}개`);
+    this.logger.log('─'.repeat(60));
+
+    examples.forEach((ex, idx) => {
+      this.logger.log(`\n[Example ${idx + 1}] Score: ${ex.score?.toFixed(4) || 'N/A'}`);
+      this.logger.log(`  📌 Description: ${ex.description}`);
+      this.logger.log(`  💾 SQL: ${ex.sql.substring(0, 100)}${ex.sql.length > 100 ? '...' : ''}`);
+    });
+
+    this.logger.log('═'.repeat(60));
+  }
+
+  /**
    * 자연어 질의를 SQL로 변환
+   * RAG 기반 OpenSearch 벡터 검색으로 유사 SQL 예제를 few-shot hint로 사용
    * @param userQuery 사용자 질의
    * @returns 생성된 SQL 쿼리
    */
@@ -109,19 +131,62 @@ export class QueryService {
 
     const schema = await this.queryRepository.getSchema();
 
-    // Few-shot 예제 선택 (관련도 높은 상위 5개)
-    const relevantExamples = getRelevantExamples(userQuery, 5);
-    const fewShotExamples = relevantExamples
-      .map(
-        (example, index) => `
+    // RAG 기반 Few-shot 예제 검색 (OpenSearch 벡터 검색)
+    let fewShotExamples: string;
+
+    try {
+      this.logger.log(`🚀 RAG 검색 시작: "${userQuery.substring(0, 50)}..."`);
+      const ragContext = await this.ragService.getRagContext(userQuery, 5);
+
+      if (ragContext.examples.length > 0) {
+        // RAG 검색 결과 로깅
+        this.logRagResults(userQuery, ragContext.examples, 'RAG');
+
+        fewShotExamples = ragContext.examples
+          .map(
+            (example, index) => `
+Example ${index + 1}:
+Description: "${example.description}"
+SQL: ${example.sql}
+Similarity Score: ${example.score?.toFixed(4) || 'N/A'}`,
+          )
+          .join('\n');
+
+        this.logger.log(`✅ RAG: ${ragContext.examples.length}개 유사 예제 검색 완료`);
+      } else {
+        // RAG 결과가 없으면 키워드 매칭 폴백
+        this.logger.warn('⚠️ RAG 검색 결과 없음 - Fallback 사용');
+        const relevantExamples = getRelevantExamples(userQuery, 5);
+        fewShotExamples = relevantExamples
+          .map(
+            (example, index) => `
 Example ${index + 1}:
 Question: "${example.question}"
 SQL: ${example.sql}
 ${example.description ? `Note: ${example.description}` : ''}`,
-      )
-      .join('\n');
+          )
+          .join('\n');
 
-    this.logger.log(`Selected ${relevantExamples.length} relevant few-shot examples`);
+        this.logger.log(`📋 Fallback: ${relevantExamples.length}개 키워드 매칭 예제 사용`);
+      }
+    } catch (error) {
+      // RAG 실패 시 키워드 매칭 폴백
+      this.logger.error(`❌ RAG Service 오류: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.warn('⚠️ Fallback: 키워드 매칭 방식 사용');
+
+      const relevantExamples = getRelevantExamples(userQuery, 5);
+      fewShotExamples = relevantExamples
+        .map(
+          (example, index) => `
+Example ${index + 1}:
+Question: "${example.question}"
+SQL: ${example.sql}
+${example.description ? `Note: ${example.description}` : ''}`,
+        )
+        .join('\n');
+
+      this.logger.log(`📋 Fallback: ${relevantExamples.length}개 키워드 매칭 예제 사용`);
+    }
 
     const { system, user } = buildTextToSQLPrompt({
       schema,

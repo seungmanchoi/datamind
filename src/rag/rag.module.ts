@@ -3,8 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { EmbeddingsService } from '@/common/embeddings.service';
 import { OpenSearchService } from '@/common/opensearch.service';
-
-import { RagService } from './rag.service';
+import { RagService } from '@/rag/rag.service';
 
 /**
  * RAG Module

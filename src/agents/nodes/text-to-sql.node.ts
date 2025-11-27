@@ -1,11 +1,13 @@
 import { BedrockChat } from '@langchain/community/chat_models/bedrock';
 import { RunnableConfig } from '@langchain/core/runnables';
+import { Logger } from '@nestjs/common';
 
-import { RagService } from '@/rag/rag.service';
+import { formatFewShotExamples, getRelevantExamples } from '@/agents/config/fewshot-examples';
+import { AgentStateType, setSqlQuery } from '@/agents/state';
+import { SchemaRetrievalTool } from '@/agents/tools';
+import { RagService, SqlExample } from '@/rag/rag.service';
 
-import { formatFewShotExamples, getRelevantExamples } from '../config/fewshot-examples';
-import { AgentStateType, setSqlQuery } from '../state';
-import { SchemaRetrievalTool } from '../tools';
+const logger = new Logger('TextToSqlNode');
 
 /**
  * Text-to-SQL Agent Node
@@ -41,6 +43,26 @@ export async function textToSqlNode(state: AgentStateType, config?: RunnableConf
 }
 
 /**
+ * RAG 검색 결과를 상세 로깅
+ */
+function logRagResults(query: string, examples: SqlExample[], source: 'RAG' | 'Fallback'): void {
+  logger.log('═'.repeat(60));
+  logger.log(`📊 Few-Shot Hint 검색 결과 (Source: ${source})`);
+  logger.log('─'.repeat(60));
+  logger.log(`🔍 User Query: "${query}"`);
+  logger.log(`📝 검색된 예제 수: ${examples.length}개`);
+  logger.log('─'.repeat(60));
+
+  examples.forEach((ex, idx) => {
+    logger.log(`\n[Example ${idx + 1}] Score: ${ex.score?.toFixed(4) || 'N/A'}`);
+    logger.log(`  📌 Description: ${ex.description}`);
+    logger.log(`  💾 SQL: ${ex.sql.substring(0, 100)}${ex.sql.length > 100 ? '...' : ''}`);
+  });
+
+  logger.log('═'.repeat(60));
+}
+
+/**
  * Text-to-SQL 프롬프트 생성 (RAG + Few-Shot Learning 적용)
  * RAG Service를 사용하여 OpenSearch에서 유사 SQL 예제를 동적으로 검색
  */
@@ -50,9 +72,13 @@ async function buildTextToSqlPrompt(userQuery: string, schemaInfo: string, ragSe
   // RAG Service를 사용할 수 있는 경우 벡터 검색으로 유사 예제 가져오기
   if (ragService) {
     try {
+      logger.log(`🚀 RAG 검색 시작: "${userQuery.substring(0, 50)}..."`);
       const ragContext = await ragService.getRagContext(userQuery, 5);
 
       if (ragContext.examples.length > 0) {
+        // RAG 검색 결과 로깅
+        logRagResults(userQuery, ragContext.examples, 'RAG');
+
         // RAG로 검색된 예제를 Few-Shot 형식으로 포맷팅
         examplesText = ragContext.examples
           .map(
@@ -63,6 +89,7 @@ SQL: ${ex.sql}`,
           )
           .join('\n');
       } else {
+        logger.warn('⚠️ RAG 검색 결과 없음 - Fallback 사용');
         // RAG 결과가 없으면 하드코딩된 Few-Shot 예제 사용 (Fallback)
         const relevantExamples = getRelevantExamples(userQuery, 3);
         examplesText =
@@ -79,7 +106,8 @@ SQL: ${ex.sql}`,
       }
     } catch (error) {
       // RAG 실패 시 기존 키워드 매칭 방식 사용 (Fallback)
-      console.error('RAG Service error, falling back to keyword matching:', error);
+      logger.error(`❌ RAG Service 오류: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      logger.warn('⚠️ Fallback: 키워드 매칭 방식 사용');
       const relevantExamples = getRelevantExamples(userQuery, 3);
       examplesText =
         relevantExamples.length > 0
@@ -94,6 +122,7 @@ SQL: ${ex.sql}`,
           : formatFewShotExamples();
     }
   } else {
+    logger.warn('⚠️ RAG Service 미설정 - 키워드 매칭 사용');
     // RAG Service가 없으면 기존 키워드 매칭 방식 사용
     const relevantExamples = getRelevantExamples(userQuery, 3);
     examplesText =

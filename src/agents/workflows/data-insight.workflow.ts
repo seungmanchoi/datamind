@@ -1,7 +1,7 @@
 import { END, START, StateGraph } from '@langchain/langgraph';
 
-import { insightSummarizerNode, routerNode, semanticSearchNode, sqlExecutorNode, textToSqlNode } from '../nodes';
-import { AgentState, AgentStateType } from '../state';
+import { insightSummarizerNode, routerNode, semanticSearchNode, sqlExecutorNode, textToSqlNode } from '@/agents/nodes';
+import { AgentState, AgentStateType } from '@/agents/state';
 
 /**
  * Data Insight Workflow

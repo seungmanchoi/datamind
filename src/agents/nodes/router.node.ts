@@ -1,6 +1,6 @@
 import { RunnableConfig } from '@langchain/core/runnables';
 
-import { AgentStateType } from '../state';
+import { AgentStateType } from '@/agents/state';
 
 /**
  * Router Node

@@ -1,7 +1,7 @@
 import { RunnableConfig } from '@langchain/core/runnables';
 
-import { AgentStateType, setQueryResult } from '../state';
-import { SqlExecutorTool } from '../tools';
+import { AgentStateType, setQueryResult } from '@/agents/state';
+import { SqlExecutorTool } from '@/agents/tools';
 
 /**
  * SQL Executor Node

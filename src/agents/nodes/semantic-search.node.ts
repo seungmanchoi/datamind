@@ -1,8 +1,7 @@
 import { RunnableConfig } from '@langchain/core/runnables';
 
+import { AgentStateType } from '@/agents/state';
 import { SearchService } from '@/modules/search/search.service';
-
-import { AgentStateType } from '../state';
 
 /**
  * Semantic Search Node

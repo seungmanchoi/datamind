@@ -2,9 +2,8 @@ import { Module } from '@nestjs/common';
 
 import { EmbeddingsService } from '@/common/embeddings.service';
 import { OpenSearchService } from '@/common/opensearch.service';
-
-import { IndexingController } from './indexing.controller';
-import { IndexingService } from './indexing.service';
+import { IndexingController } from '@/modules/indexing/indexing.controller';
+import { IndexingService } from '@/modules/indexing/indexing.service';
 
 @Module({
   controllers: [IndexingController],

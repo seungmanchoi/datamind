@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 
-import { ClarifyingQuestionItemDto, ClarifyingQuestionsDto } from './dto/clarifying-question.dto';
-import { InsightsDto } from './dto/insights.dto';
-import { QueryResponseDto } from './dto/query-response.dto';
-import { VisualizationDto } from './dto/visualization.dto';
-import { EnhancedQueryResult } from './query.service';
+import { ClarifyingQuestionItemDto, ClarifyingQuestionsDto } from '@/modules/query/dto/clarifying-question.dto';
+import { InsightsDto } from '@/modules/query/dto/insights.dto';
+import { QueryResponseDto } from '@/modules/query/dto/query-response.dto';
+import { VisualizationDto } from '@/modules/query/dto/visualization.dto';
+import { EnhancedQueryResult } from '@/modules/query/query.service';
 
 @Injectable()
 export class QueryMapper {

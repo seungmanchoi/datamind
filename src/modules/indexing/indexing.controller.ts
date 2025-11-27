@@ -1,6 +1,6 @@
 import { Controller, Logger, Param, Post } from '@nestjs/common';
 
-import { IndexingService } from './indexing.service';
+import { IndexingService } from '@/modules/indexing/indexing.service';
 
 /**
  * Indexing Controller

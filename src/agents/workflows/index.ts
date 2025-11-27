@@ -1,1 +1,1 @@
-export { createDataInsightWorkflow, createAdvancedDataInsightWorkflow } from './data-insight.workflow';
+export { createDataInsightWorkflow, createAdvancedDataInsightWorkflow } from '@/agents/workflows/data-insight.workflow';

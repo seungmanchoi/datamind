@@ -37,10 +37,21 @@ export class RagService {
   async searchSimilarExamples(query: string, topK: number = 5): Promise<SqlExample[]> {
     try {
       // 1. 질문을 벡터로 임베딩
-      this.logger.log(`Embedding query: "${query.substring(0, 50)}..."`);
+      this.logger.log('┌' + '─'.repeat(58) + '┐');
+      this.logger.log(`│ 🔍 OpenSearch RAG 검색 시작`);
+      this.logger.log('├' + '─'.repeat(58) + '┤');
+      this.logger.log(`│ Query: "${query.substring(0, 50)}${query.length > 50 ? '...' : ''}"`);
+      this.logger.log(`│ Index: ${this.indexName}`);
+      this.logger.log(`│ TopK: ${topK}`);
+      this.logger.log('├' + '─'.repeat(58) + '┤');
+
+      const startTime = Date.now();
       const queryEmbedding = await this.embeddingsService.embedText(query);
+      const embeddingTime = Date.now() - startTime;
+      this.logger.log(`│ ✅ Embedding 생성 완료 (${embeddingTime}ms, dim: ${queryEmbedding.length})`);
 
       // 2. OpenSearch k-NN 검색
+      const searchStartTime = Date.now();
       const client = this.opensearchService.getClient();
       const searchResponse = await client.search({
         index: this.indexName,
@@ -56,22 +67,36 @@ export class RagService {
           },
         },
       });
+      const searchTime = Date.now() - searchStartTime;
 
       const hits = searchResponse.body.hits.hits;
+      this.logger.log(`│ ✅ k-NN 검색 완료 (${searchTime}ms, hits: ${hits.length})`);
 
       if (hits.length === 0) {
-        this.logger.warn('No similar examples found');
+        this.logger.warn('│ ⚠️ 검색 결과 없음');
+        this.logger.log('└' + '─'.repeat(58) + '┘');
         return [];
       }
 
       // 3. 결과 변환
-      const examples: SqlExample[] = hits.map((hit: any) => ({
+      interface OpenSearchHit {
+        _source: { description: string; sql: string };
+        _score: number;
+      }
+      const typedHits = hits as unknown as OpenSearchHit[];
+      const examples: SqlExample[] = typedHits.map((hit) => ({
         description: hit._source.description,
         sql: hit._source.sql,
         score: hit._score,
       }));
 
-      this.logger.log(`Found ${examples.length} similar examples (top score: ${examples[0]?.score?.toFixed(4)})`);
+      this.logger.log('├' + '─'.repeat(58) + '┤');
+      this.logger.log(`│ 📊 검색 결과 요약`);
+      this.logger.log(`│ - 총 ${examples.length}개 예제 발견`);
+      this.logger.log(`│ - 최고 유사도: ${examples[0]?.score?.toFixed(4)}`);
+      this.logger.log(`│ - 최저 유사도: ${examples[examples.length - 1]?.score?.toFixed(4)}`);
+      this.logger.log(`│ - 총 소요시간: ${embeddingTime + searchTime}ms`);
+      this.logger.log('└' + '─'.repeat(58) + '┘');
 
       return examples;
     } catch (error) {

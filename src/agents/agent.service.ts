@@ -2,13 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 
+import { createBedrockChatModel } from '@/agents/config/langchain.config';
+import { initializeState } from '@/agents/state';
+import { SchemaRetrievalTool, SqlExecutorTool } from '@/agents/tools';
+import { createDataInsightWorkflow } from '@/agents/workflows';
 import { SearchService } from '@/modules/search/search.service';
 import { RagService } from '@/rag/rag.service';
-
-import { createBedrockChatModel } from './config/langchain.config';
-import { initializeState } from './state';
-import { SchemaRetrievalTool, SqlExecutorTool } from './tools';
-import { createDataInsightWorkflow } from './workflows';
 
 @Injectable()
 export class AgentService {

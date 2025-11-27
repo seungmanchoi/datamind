@@ -6,9 +6,9 @@ import {
 } from '@aws-sdk/client-bedrock-runtime';
 import { Injectable, Logger } from '@nestjs/common';
 
-import { INSIGHT_GENERATION_PROMPT } from '../prompts/insight-generation.prompt';
-import { QUERY_ANALYSIS_PROMPT } from '../prompts/query-analysis.prompt';
-import { VISUALIZATION_SELECTION_PROMPT } from '../prompts/visualization-selection.prompt';
+import { INSIGHT_GENERATION_PROMPT } from '@/prompts/insight-generation.prompt';
+import { QUERY_ANALYSIS_PROMPT } from '@/prompts/query-analysis.prompt';
+import { VISUALIZATION_SELECTION_PROMPT } from '@/prompts/visualization-selection.prompt';
 
 export interface ClaudeMessage {
   role: 'user' | 'assistant';

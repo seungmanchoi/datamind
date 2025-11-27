@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
 
 import { BedrockService } from '@/common/bedrock.service';
-
-import { QueryController } from './query.controller';
-import { QueryMapper } from './query.mapper';
-import { QueryRepository } from './query.repository';
-import { QueryService } from './query.service';
+import { QueryController } from '@/modules/query/query.controller';
+import { QueryMapper } from '@/modules/query/query.mapper';
+import { QueryRepository } from '@/modules/query/query.repository';
+import { QueryService } from '@/modules/query/query.service';
+import { RagModule } from '@/rag/rag.module';
 
 @Module({
+  imports: [RagModule],
   controllers: [QueryController],
   providers: [QueryService, QueryRepository, QueryMapper, BedrockService],
   exports: [QueryService],

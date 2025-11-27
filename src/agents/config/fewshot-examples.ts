@@ -196,7 +196,7 @@ JOIN category c ON p.category_id = c.id
 JOIN order_market om ON omp.order_market_id = om.id
 JOIN \`order\` o ON om.order_id = o.id
 WHERE c.category1_name = '악세사리'
-  AND o.order_status IN (3, 4, 5)
+  AND o.order_status IN (3, 4, 5, 6)
   AND o.order_date >= DATE_SUB(NOW(), INTERVAL 90 DAY)
 GROUP BY p.id, p.product_name, c.category_name
 ORDER BY 판매수량 DESC
@@ -313,7 +313,7 @@ JOIN market m ON p.market_id = m.id
 JOIN order_market om ON omp.order_market_id = om.id
 JOIN \`order\` o ON om.order_id = o.id
 WHERE c.category1_name = '아동복'
-  AND o.order_status IN (3, 4, 5)
+  AND o.order_status IN (3, 4, 5, 6)
   AND o.order_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
 GROUP BY p.id, p.product_name, c.category1_name, c.category2_name, c.category3_name, m.market_name
 ORDER BY 판매수량 DESC

@@ -1,9 +1,9 @@
 import { Type } from 'class-transformer';
 import { IsArray, IsNumber, IsOptional, IsString, ValidateNested } from 'class-validator';
 
-import { ClarifyingQuestionsDto } from './clarifying-question.dto';
-import { InsightsDto } from './insights.dto';
-import { VisualizationDto } from './visualization.dto';
+import { ClarifyingQuestionsDto } from '@/modules/query/dto/clarifying-question.dto';
+import { InsightsDto } from '@/modules/query/dto/insights.dto';
+import { VisualizationDto } from '@/modules/query/dto/visualization.dto';
 
 /**
  * AI 질의 응답 DTO (Phase 7 Enhanced)

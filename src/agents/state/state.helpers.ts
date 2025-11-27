@@ -1,6 +1,6 @@
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 
-import { AgentStateType } from './agent.state';
+import { AgentStateType } from '@/agents/state/agent.state';
 
 /**
  * State 업데이트 헬퍼 함수들

@@ -1,2 +1,2 @@
-export { SqlExecutorTool } from './sql-executor.tool';
-export { SchemaRetrievalTool } from './schema-retrieval.tool';
+export { SqlExecutorTool } from '@/agents/tools/sql-executor.tool';
+export { SchemaRetrievalTool } from '@/agents/tools/schema-retrieval.tool';

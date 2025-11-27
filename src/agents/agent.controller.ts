@@ -1,6 +1,6 @@
 import { Body, Controller, HttpCode, HttpStatus, Logger, Post } from '@nestjs/common';
 
-import { AgentService } from './agent.service';
+import { AgentService } from '@/agents/agent.service';
 
 interface TestPromptDto {
   prompt: string;
