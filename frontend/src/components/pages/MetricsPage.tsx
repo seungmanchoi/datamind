@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BarChart, HelpCircle, Search, Clock, Server } from 'lucide-react';
+import { BarChart, HelpCircle, Search, Clock, Server, Info } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
@@ -8,6 +8,7 @@ interface MetricCardProps {
   title: string;
   value: string | number | React.ReactNode;
   subtitle?: string;
+  color?: 'blue' | 'purple' | 'emerald' | 'amber';
 }
 
 interface HistoryItem {
@@ -16,15 +17,24 @@ interface HistoryItem {
   };
 }
 
-function MetricCard({ icon, title, value, subtitle }: MetricCardProps) {
+function MetricCard({ icon, title, value, subtitle, color = 'blue' }: MetricCardProps) {
+  const colorClasses = {
+    blue: 'from-blue-600 to-indigo-600 shadow-blue-500/20',
+    purple: 'from-purple-600 to-pink-600 shadow-purple-500/20',
+    emerald: 'from-emerald-600 to-teal-600 shadow-emerald-500/20',
+    amber: 'from-amber-500 to-orange-600 shadow-amber-500/20',
+  };
+
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+    <div className="glass rounded-2xl p-6 hover:bg-white/10 transition-all">
       <div className="flex items-start gap-4">
-        <div className="p-3 bg-blue-50 rounded-lg text-blue-600">{icon}</div>
+        <div className={`bg-gradient-to-br ${colorClasses[color]} p-3 rounded-xl shadow-lg`}>
+          {icon}
+        </div>
         <div className="flex-1">
-          <h3 className="text-gray-600 text-sm font-medium mb-1">{title}</h3>
-          <p className="text-2xl font-bold text-gray-800">{value}</p>
-          {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+          <h3 className="text-slate-400 text-sm font-medium mb-1">{title}</h3>
+          <p className="text-2xl font-bold text-white">{value}</p>
+          {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
         </div>
       </div>
     </div>
@@ -64,17 +74,17 @@ export default function MetricsPage() {
 
   const getStatusBadge = () => {
     if (healthLoading) {
-      return <span className="text-sm text-gray-500">확인 중...</span>;
+      return <span className="text-sm text-slate-500">확인 중...</span>;
     }
     if (healthStatus?.status === 'ok') {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
           정상
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
         오류
       </span>
     );
@@ -82,84 +92,93 @@ export default function MetricsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-br from-orange-50 to-yellow-50 p-6 rounded-lg border border-orange-100">
-        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-2">
-          <BarChart className="w-6 h-6 text-orange-600" />
+      <div className="glass p-8 rounded-2xl shadow-lg">
+        <h2 className="text-2xl font-bold text-white flex items-center gap-3 mb-3">
+          <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-2.5 rounded-xl shadow-lg shadow-amber-500/20">
+            <BarChart className="w-5 h-5 text-white" />
+          </div>
           메트릭 대시보드
         </h2>
-        <p className="text-gray-600">시스템 사용 통계 및 성능 메트릭</p>
+        <p className="text-slate-400 leading-relaxed">시스템 사용 통계 및 성능 메트릭</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          icon={<HelpCircle className="w-6 h-6" />}
+          icon={<HelpCircle className="w-5 h-5 text-white" />}
           title="총 질의 수"
           value={metrics.totalQueries}
           subtitle="저장된 전체 질의"
+          color="blue"
         />
 
         <MetricCard
-          icon={<Search className="w-6 h-6" />}
+          icon={<Search className="w-5 h-5 text-white" />}
           title="검색 수"
           value={metrics.totalQueries}
           subtitle="시맨틱 + 하이브리드"
+          color="purple"
         />
 
         <MetricCard
-          icon={<Clock className="w-6 h-6" />}
+          icon={<Clock className="w-5 h-5 text-white" />}
           title="평균 응답시간"
           value={metrics.averageTime > 0 ? `${metrics.averageTime}ms` : '-'}
           subtitle={
             metrics.totalQueries > 0 ? `${metrics.totalQueries}건 기준` : '데이터 없음'
           }
+          color="emerald"
         />
 
         <MetricCard
-          icon={<Server className="w-6 h-6" />}
+          icon={<Server className="w-5 h-5 text-white" />}
           title="API 상태"
           value={getStatusBadge()}
           subtitle={healthLoading ? '상태 확인 중...' : '자동 갱신: 30초'}
+          color="amber"
         />
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">시스템 정보</h3>
+      <div className="glass rounded-2xl p-6">
+        <h3 className="text-lg font-bold text-white mb-4">시스템 정보</h3>
         <div className="space-y-3">
-          <div className="flex items-center justify-between py-2 border-b border-gray-100">
-            <span className="text-gray-600">프론트엔드</span>
-            <span className="font-medium text-gray-800">React + Vite + TypeScript</span>
+          <div className="flex items-center justify-between py-3 border-b border-white/10">
+            <span className="text-slate-400">프론트엔드</span>
+            <span className="font-medium text-slate-200">React + Vite + TypeScript</span>
           </div>
-          <div className="flex items-center justify-between py-2 border-b border-gray-100">
-            <span className="text-gray-600">백엔드</span>
-            <span className="font-medium text-gray-800">NestJS + TypeORM</span>
+          <div className="flex items-center justify-between py-3 border-b border-white/10">
+            <span className="text-slate-400">백엔드</span>
+            <span className="font-medium text-slate-200">NestJS + TypeORM</span>
           </div>
-          <div className="flex items-center justify-between py-2 border-b border-gray-100">
-            <span className="text-gray-600">AI 엔진</span>
-            <span className="font-medium text-gray-800">
+          <div className="flex items-center justify-between py-3 border-b border-white/10">
+            <span className="text-slate-400">AI 엔진</span>
+            <span className="font-medium text-slate-200">
               AWS Bedrock (Claude 3 Sonnet)
             </span>
           </div>
-          <div className="flex items-center justify-between py-2 border-b border-gray-100">
-            <span className="text-gray-600">벡터 DB</span>
-            <span className="font-medium text-gray-800">
+          <div className="flex items-center justify-between py-3 border-b border-white/10">
+            <span className="text-slate-400">벡터 DB</span>
+            <span className="font-medium text-slate-200">
               Amazon OpenSearch Serverless
             </span>
           </div>
-          <div className="flex items-center justify-between py-2 border-b border-gray-100">
-            <span className="text-gray-600">데이터베이스</span>
-            <span className="font-medium text-gray-800">GCP Cloud SQL (MySQL)</span>
+          <div className="flex items-center justify-between py-3 border-b border-white/10">
+            <span className="text-slate-400">데이터베이스</span>
+            <span className="font-medium text-slate-200">GCP Cloud SQL (MySQL)</span>
           </div>
-          <div className="flex items-center justify-between py-2">
-            <span className="text-gray-600">상태 관리</span>
-            <span className="font-medium text-gray-800">TanStack Query</span>
+          <div className="flex items-center justify-between py-3">
+            <span className="text-slate-400">상태 관리</span>
+            <span className="font-medium text-slate-200">TanStack Query</span>
           </div>
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-700">
-          <strong>Note:</strong> 메트릭은 브라우저 LocalStorage 기반으로 계산됩니다. 실제
-          프로덕션 환경에서는 서버 기반 메트릭 수집을 권장합니다.
+      <div className="glass rounded-2xl p-5 border border-blue-500/20 bg-blue-500/5">
+        <p className="text-sm text-blue-300 flex items-start gap-3">
+          <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <span>
+            <strong>Note:</strong> 메트릭은 브라우저 LocalStorage 기반으로 계산됩니다. 실제
+            프로덕션 환경에서는 서버 기반 메트릭 수집을 권장합니다.
+          </span>
         </p>
       </div>
     </div>
