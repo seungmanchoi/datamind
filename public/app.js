@@ -400,7 +400,7 @@ function displayError(message, target = 'query') {
   targetElement.innerHTML = `
     <div class="result-section">
       <h3 style="color: var(--danger-color);"><i class="fas fa-exclamation-triangle"></i> 오류</h3>
-      <div class="insight-message" style="background-color: #fee; border-color: var(--danger-color);">
+      <div class="insight-message error">
         ${escapeHtml(message)}
       </div>
     </div>

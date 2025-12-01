@@ -30,7 +30,11 @@
       "Bash(pnpm run verify:embeddings:*)",
       "Bash(pnpm run test:rag:*)",
       "Bash(.env)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(cd:*)",
+      "mcp__playwright__browser_navigate",
+      "Bash(yarn lint:*)",
+      "Bash(yarn run format:*)"
     ],
     "deny": [],
     "ask": []

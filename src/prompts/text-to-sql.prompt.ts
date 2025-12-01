@@ -30,7 +30,7 @@ Your task is to generate valid, optimized MySQL queries based on natural languag
 3. **주문 상태 (order_status)는 order 테이블에만 존재**
    - ❌ WRONG: order_market.order_status (존재하지 않음!)
    - ✅ CORRECT: \`order\`.order_status
-   - 유효 주문: order_status IN (3, 4, 5, 6)
+   - 유효 주문: order_status IN (2, 3, 4, 5, 6)
 
 4. **올바른 JOIN 순서 (판매량 조회 시)**:
    order_market_product_option
