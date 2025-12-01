@@ -15,7 +15,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { type QueryResult } from '@/lib/api';
-import { formatCurrency, formatNumber } from '@/lib/utils';
+import { formatCurrency, formatNumber, translateColumnName } from '@/lib/utils';
 
 interface ResultChartProps {
   data: QueryResult[];
@@ -23,14 +23,14 @@ interface ResultChartProps {
 }
 
 const COLORS = [
-  '#3B82F6',
-  '#10B981',
-  '#F59E0B',
-  '#EF4444',
-  '#8B5CF6',
-  '#EC4899',
-  '#6366F1',
-  '#14B8A6',
+  '#6366f1', // Indigo 500
+  '#10b981', // Emerald 500
+  '#f472b6', // Pink 400
+  '#8b5cf6', // Violet 500
+  '#3b82f6', // Blue 500
+  '#ec4899', // Pink 500
+  '#14b8a6', // Teal 500
+  '#f59e0b', // Amber 500
 ];
 
 /**
@@ -117,10 +117,13 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
 
   // Tooltip 커스텀 포맷터
   const formatTooltipValue = (value: number, name: string) => {
-    if (currencyKeys.includes(name)) {
-      return formatCurrency(value);
-    }
-    return formatNumber(value);
+    const formattedValue = currencyKeys.includes(name) ? formatCurrency(value) : formatNumber(value);
+    return [formattedValue, translateColumnName(name)];
+  };
+
+  // Legend 커스텀 포맷터
+  const formatLegendValue = (value: string) => {
+    return translateColumnName(value);
   };
 
   // YAxis 커스텀 포맷터
@@ -154,8 +157,8 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
     };
 
     return (
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 shadow-sm">
-        <h4 className="text-base font-bold text-gray-800 mb-4">
+      <div className="glass rounded-2xl p-6 shadow-lg">
+        <h4 className="text-base font-bold text-slate-200 mb-4">
           데이터 시각화
         </h4>
         <ResponsiveContainer width="100%" height={320}>
@@ -173,10 +176,13 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
               dataKey="value"
             >
               {pieData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill} />
+                <Cell key={`cell-${index}`} fill={entry.fill} stroke="rgba(0,0,0,0.2)" />
               ))}
             </Pie>
-            <Tooltip formatter={pieTooltipFormatter} />
+            <Tooltip
+              formatter={pieTooltipFormatter}
+              contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -185,24 +191,30 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
 
   if (type === 'line') {
     return (
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 shadow-sm">
-        <h4 className="text-base font-bold text-gray-800 mb-4">
+      <div className="glass rounded-2xl p-6 shadow-lg">
+        <h4 className="text-base font-bold text-slate-200 mb-4">
           데이터 시각화
         </h4>
         <ResponsiveContainer width="100%" height={320}>
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-            <YAxis tickFormatter={formatYAxisTick} />
-            <Tooltip formatter={formatTooltipValue} />
-            <Legend />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+            <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} stroke="#94a3b8" />
+            <YAxis tickFormatter={formatYAxisTick} stroke="#94a3b8" />
+            <Tooltip
+              formatter={formatTooltipValue}
+              contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
+            />
+            <Legend wrapperStyle={{ color: '#cbd5e1' }} formatter={formatLegendValue} />
             {dataKeys.map((key, index) => (
               <Line
                 key={key}
                 type="monotone"
                 dataKey={key}
+                name={translateColumnName(key)}
                 stroke={COLORS[index % COLORS.length]}
-                strokeWidth={2}
+                strokeWidth={3}
+                dot={{ r: 4, strokeWidth: 2 }}
+                activeDot={{ r: 6 }}
               />
             ))}
           </LineChart>
@@ -213,22 +225,28 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
 
   // Bar 차트 (기본)
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200/50 shadow-sm">
-      <h4 className="text-base font-bold text-gray-800 mb-4">
+    <div className="glass rounded-2xl p-6 shadow-lg">
+      <h4 className="text-base font-bold text-slate-200 mb-4">
         데이터 시각화
       </h4>
       <ResponsiveContainer width="100%" height={320}>
         <BarChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-          <YAxis tickFormatter={formatYAxisTick} />
-          <Tooltip formatter={formatTooltipValue} />
-          <Legend />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+          <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} stroke="#94a3b8" />
+          <YAxis tickFormatter={formatYAxisTick} stroke="#94a3b8" />
+          <Tooltip
+            formatter={formatTooltipValue}
+            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
+            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+          />
+          <Legend wrapperStyle={{ color: '#cbd5e1' }} formatter={formatLegendValue} />
           {dataKeys.map((key, index) => (
             <Bar
               key={key}
               dataKey={key}
+              name={translateColumnName(key)}
               fill={COLORS[index % COLORS.length]}
+              radius={[4, 4, 0, 0]}
             />
           ))}
         </BarChart>
