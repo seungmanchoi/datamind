@@ -19,6 +19,8 @@ export const API_ENDPOINTS = {
   agentQuery: '/query',
   semanticSearch: '/search/semantic',
   hybridSearch: '/search/hybrid',
+  examples: '/indexing/examples',
+  indexProducts: '/indexing/products',
   health: '/health',
 } as const;
 
@@ -82,48 +84,123 @@ export interface SemanticSearchResponse {
   timestamp: string;
 }
 
+export interface DeleteEmbeddingsResponse {
+  success: boolean;
+  message: string;
+  timestamp: string;
+}
+
+export interface IndexProductsResponse {
+  message: string;
+  indexed: number;
+  failed: number;
+  total: number;
+}
+
+// Few-shot 예제 타입
+export interface FewShotExample {
+  description: string;
+  sql: string;
+}
+
+export interface ExampleItem {
+  id: string;
+  description: string;
+  sql: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ExampleListResponse {
+  examples: ExampleItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface EmbedExampleResponse {
+  id: string;
+  description: string;
+  sql: string;
+  processingTime: number;
+}
+
+export interface UpdateExampleResponse {
+  id: string;
+  description: string;
+  sql: string;
+  reembedded: boolean;
+  processingTime: number;
+}
+
 // API 호출 함수
 export const api = {
   // AI 질의 실행
   async queryAgent(query: string): Promise<AgentQueryResponse> {
-    const response = await apiClient.post<AgentQueryResponse>(
-      API_ENDPOINTS.agentQuery,
-      { query }
-    );
+    const response = await apiClient.post<AgentQueryResponse>(API_ENDPOINTS.agentQuery, { query });
     return response.data;
   },
 
   // 시맨틱 검색
-  async semanticSearch(
-    query: string,
-    topK: number = 10
-  ): Promise<SemanticSearchResponse> {
-    const response = await apiClient.get<SemanticSearchResponse>(
-      API_ENDPOINTS.semanticSearch,
-      {
-        params: { query, top_k: topK },
-      }
-    );
+  async semanticSearch(query: string, topK: number = 10): Promise<SemanticSearchResponse> {
+    const response = await apiClient.get<SemanticSearchResponse>(API_ENDPOINTS.semanticSearch, {
+      params: { query, top_k: topK },
+    });
     return response.data;
   },
 
   // 하이브리드 검색
-  async hybridSearch(
-    query: string,
-    topK: number = 10
-  ): Promise<SemanticSearchResponse> {
-    const response = await apiClient.get<SemanticSearchResponse>(
-      API_ENDPOINTS.hybridSearch,
-      {
-        params: { query, top_k: topK },
-      }
-    );
+  async hybridSearch(query: string, topK: number = 10): Promise<SemanticSearchResponse> {
+    const response = await apiClient.get<SemanticSearchResponse>(API_ENDPOINTS.hybridSearch, {
+      params: { query, top_k: topK },
+    });
     return response.data;
   },
 
   // Health 체크
   async checkHealth(): Promise<{ status: string }> {
     const response = await apiClient.get(API_ENDPOINTS.health);
+    return response.data;
+  },
+
+  // Few-shot 예제 목록 조회 (페이징)
+  async getExamples(page: number = 1, limit: number = 10): Promise<ExampleListResponse> {
+    const response = await apiClient.get<ExampleListResponse>(API_ENDPOINTS.examples, {
+      params: { page, limit },
+    });
+    return response.data;
+  },
+
+  // Few-shot 예제 임베딩
+  async embedExample(example: FewShotExample): Promise<EmbedExampleResponse> {
+    const response = await apiClient.post<EmbedExampleResponse>(API_ENDPOINTS.examples, example);
+    return response.data;
+  },
+
+  // Few-shot 예제 수정
+  async updateExample(id: string, example: FewShotExample): Promise<UpdateExampleResponse> {
+    const response = await apiClient.put<UpdateExampleResponse>(`${API_ENDPOINTS.examples}/${id}`, example);
+    return response.data;
+  },
+
+  // 특정 예제 삭제
+  async deleteExample(id: string): Promise<{ success: boolean; message: string; id: string }> {
+    const response = await apiClient.delete<{ success: boolean; message: string; id: string }>(
+      `${API_ENDPOINTS.examples}/${id}`,
+    );
+    return response.data;
+  },
+
+  // 모든 예제 삭제
+  async deleteAllExamples(): Promise<DeleteEmbeddingsResponse> {
+    const response = await apiClient.delete<DeleteEmbeddingsResponse>(API_ENDPOINTS.examples);
+    return response.data;
+  },
+
+  // 상품 인덱싱
+  async indexProducts(): Promise<IndexProductsResponse> {
+    const response = await apiClient.post<IndexProductsResponse>(API_ENDPOINTS.indexProducts);
     return response.data;
   },
 };
@@ -140,7 +217,7 @@ apiClient.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // Response Interceptor (응답 후 처리)
@@ -161,5 +238,5 @@ apiClient.interceptors.response.use(
       console.error('Error:', error.message);
     }
     return Promise.reject(error);
-  }
+  },
 );

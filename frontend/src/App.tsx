@@ -3,10 +3,11 @@ import Header from '@/components/Header';
 import Navigation from '@/components/Navigation';
 import QueryPage from '@/components/pages/QueryPage';
 import SearchPage from '@/components/pages/SearchPage';
+import EmbeddingPage from '@/components/pages/EmbeddingPage';
 import HistoryPage from '@/components/pages/HistoryPage';
 import MetricsPage from '@/components/pages/MetricsPage';
 
-type PageType = 'query' | 'search' | 'history' | 'metrics';
+type PageType = 'query' | 'search' | 'embedding' | 'history' | 'metrics';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<PageType>('query');
@@ -17,6 +18,8 @@ function App() {
         return <QueryPage />;
       case 'search':
         return <SearchPage />;
+      case 'embedding':
+        return <EmbeddingPage />;
       case 'history':
         return <HistoryPage />;
       case 'metrics':
