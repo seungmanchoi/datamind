@@ -37,3 +37,4 @@ coverage/
 # Project specific - exclude from repository
 scripts/
 docs/
+.claude/settings.local.json
