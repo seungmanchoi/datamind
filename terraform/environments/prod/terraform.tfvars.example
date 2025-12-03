@@ -1,19 +1,47 @@
-# Project Configuration
+# ===========================================
+# NDMarket Terraform Variables Example
+# ===========================================
+# 이 파일을 terraform.tfvars로 복사하고 실제 값으로 변경하세요.
+# cp terraform.tfvars.example terraform.tfvars
+#
+# 주의: terraform.tfvars는 .gitignore에 포함되어야 합니다.
+# ===========================================
+
+# 프로젝트 기본 설정
 project_name = "ndmarket"
 environment  = "production"
 aws_region   = "us-east-1"
 
-# VPC Configuration
+# VPC 네트워크 설정
 vpc_cidr             = "10.0.0.0/16"
 availability_zones   = ["us-east-1a", "us-east-1b"]
 public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
 private_subnet_cidrs = ["10.0.10.0/24", "10.0.20.0/24"]
 
-# ECS Configuration
-app_image     = "<AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/ndmarket-app:latest"
-task_cpu      = "512"
-task_memory   = "1024"
-desired_count = 2
+# EKS 클러스터 설정
+kubernetes_version  = "1.29"
+node_instance_types = ["t3.medium"]
+node_desired_size   = 2
+node_min_size       = 1
+node_max_size       = 4
 
-# Monitoring Configuration
+# 컨테이너 이미지 (ECR 경로)
+# AWS_ACCOUNT_ID를 실제 계정 ID로 변경하세요
+# aws sts get-caller-identity --query Account --output text
+backend_image  = "<AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/ndmarket-backend:latest"
+frontend_image = "<AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/ndmarket-frontend:latest"
+
+# ===========================================
+# 데이터베이스 설정 (GCP Cloud SQL)
+# ===========================================
+# 이 값들은 AWS Secrets Manager에 자동으로 저장됩니다.
+db_host     = "your-cloudsql-ip-or-hostname"
+db_port     = "3306"
+db_username = "your-db-username"
+db_password = "your-db-password"
+db_database = "your-db-name"
+
+# ===========================================
+# 모니터링 설정
+# ===========================================
 alarm_email = "your-email@example.com"

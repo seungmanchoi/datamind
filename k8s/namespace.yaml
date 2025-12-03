@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ndmarket
+  labels:
+    name: ndmarket
+    app.kubernetes.io/name: ndmarket
+    app.kubernetes.io/component: namespace

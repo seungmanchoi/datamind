@@ -166,9 +166,12 @@ Frontend: Bar Chart로 시각화
 - **Design**: Modern CSS (Flexbox, Grid), Responsive
 
 ### Infrastructure
-- **IaC**: Terraform
+- **Container Orchestration**: AWS EKS (Kubernetes)
+- **IaC**: Terraform (VPC, EKS, OpenSearch, IAM, Secrets 모듈)
+- **Container Registry**: Amazon ECR
+- **Secrets Management**: AWS Secrets Manager + External Secrets Operator
 - **Monitoring**: CloudWatch
-- **CI/CD**: GitHub Actions
+- **CI/CD**: GitHub Actions (Linux 컨테이너 기반)
 
 ---
 
@@ -354,14 +357,24 @@ curl -X POST http://localhost:3000/query \
 
 - [x] Terraform 프로젝트 구조 및 State Backend 설정 (S3 + DynamoDB)
 - [x] VPC 모듈 구현 (Public/Private Subnets, NAT Gateway, IGW)
-- [x] IAM Roles 및 Policies 구현 (ECS, Bedrock, OpenSearch 접근)
+- [x] **EKS 클러스터 모듈 구현** (Managed Node Groups, IRSA)
+- [x] IAM Roles 및 Policies 구현 (EKS, Bedrock, OpenSearch 접근)
 - [x] OpenSearch Serverless 모듈 구현
-- [x] ECS Fargate 배포 모듈 (Cluster, Service, ALB, Auto Scaling)
-- [x] Dockerfile 및 Multi-stage 빌드
-- [x] GitHub Actions CI/CD 파이프라인 (자동 빌드, ECR Push, ECS 배포)
+- [x] **Secrets 모듈 구현** (AWS Secrets Manager + External Secrets Operator)
+- [x] Kubernetes 매니페스트 작성 (Deployment, Service, ConfigMap, Ingress)
+- [x] Dockerfile 및 Multi-stage 빌드 (Backend + Frontend)
+- [x] GitHub Actions CI/CD 파이프라인 (자동 빌드, ECR Push, EKS 배포)
 - [x] CloudWatch 모니터링 및 알람 설정 (CPU, Memory, ALB 메트릭)
 
-**상세 가이드**: [docs/phases/05-Infrastructure.md](./docs/phases/05-Infrastructure.md)
+**인프라 구성**:
+- **Container Orchestration**: AWS EKS (Kubernetes 1.29)
+- **Node Groups**: t3.medium (Auto Scaling 1-4)
+- **Secrets**: AWS Secrets Manager + External Secrets Operator
+- **CI/CD**: GitHub Actions (Linux ubuntu-latest 컨테이너)
+
+**상세 가이드**:
+- [docs/terraform-deployment-guide.md](./docs/terraform-deployment-guide.md)
+- [docs/eks-deployment-guide.md](./docs/eks-deployment-guide.md)
 
 ---
 
@@ -603,21 +616,51 @@ datamind/
 │   ├── phases/                          # Phase별 개발 가이드
 │   │   ├── 00-README.md
 │   │   ├── 01-Foundation.md             # ✅ 완료
-│   │   ├── 02-Agent-System.md           # 🔜 예정
-│   │   ├── 03-Vector-Search.md          # 🔜 예정
-│   │   ├── 04-Dashboard.md              # 🔜 예정
-│   │   ├── 05-Infrastructure.md         # 🔜 예정
-│   │   └── 06-Frontend-Dashboard.md     # 🔜 예정
+│   │   ├── 02-Agent-System.md           # ✅ 완료
+│   │   ├── 03-Vector-Search.md          # ✅ 완료
+│   │   ├── 04-Dashboard.md              # ✅ 완료
+│   │   ├── 05-Infrastructure.md         # ✅ 완료
+│   │   └── 06-Frontend-Dashboard.md     # ✅ 완료
+│   ├── terraform-deployment-guide.md    # Terraform 배포 가이드 (macOS)
+│   ├── eks-deployment-guide.md          # EKS 배포 가이드 (macOS)
 │   └── datamind.md                      # 프로젝트 상세 문서
 │
+├── k8s/                                 # Kubernetes 매니페스트
+│   ├── namespace.yaml                   # ndmarket 네임스페이스
+│   ├── configmap.yaml                   # 환경 설정
+│   ├── secrets.yaml.example             # Secrets 템플릿
+│   ├── external-secret.yaml             # External Secrets Operator 연동
+│   ├── backend-deployment.yaml          # 백엔드 Deployment
+│   ├── frontend-deployment.yaml         # 프론트엔드 Deployment
+│   ├── backend-service.yaml             # 백엔드 Service
+│   └── frontend-service.yaml            # 프론트엔드 Service
+│
 ├── terraform/                           # IaC (Phase 5)
-│   ├── vpc/
-│   ├── iam/
-│   ├── opensearch/
-│   └── monitoring/
+│   ├── environments/
+│   │   └── prod/                        # 프로덕션 환경
+│   │       ├── main.tf
+│   │       ├── variables.tf
+│   │       └── terraform.tfvars.example
+│   └── modules/
+│       ├── vpc/                         # VPC, Subnet, NAT Gateway
+│       ├── eks/                         # EKS 클러스터, Node Groups, IRSA
+│       ├── iam/                         # IAM Roles, Policies
+│       ├── opensearch/                  # OpenSearch Serverless
+│       └── secrets/                     # AWS Secrets Manager
+│
+├── frontend/                            # React 프론트엔드
+│   ├── src/
+│   │   ├── components/                  # React 컴포넌트
+│   │   ├── lib/                         # API 클라이언트, 유틸리티
+│   │   └── App.tsx                      # 메인 앱
+│   ├── Dockerfile                       # 프론트엔드 Docker 빌드
+│   ├── nginx.conf                       # Nginx 설정
+│   ├── vite.config.ts                   # Vite 설정
+│   └── package.json
 │
 ├── .env.example                         # 환경 변수 템플릿
 ├── .nvmrc                               # Node.js 버전 고정
+├── Dockerfile                           # 백엔드 Docker 빌드
 ├── nest-cli.json                        # NestJS CLI 설정
 ├── tsconfig.json                        # TypeScript 설정
 ├── package.json

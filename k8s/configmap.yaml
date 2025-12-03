@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ndmarket-config
+  namespace: ndmarket
+  labels:
+    app.kubernetes.io/name: ndmarket
+    app.kubernetes.io/component: config
+data:
+  NODE_ENV: "production"
+  AWS_REGION: "us-east-1"
+  BACKEND_PORT: "3000"
+  FRONTEND_PORT: "80"
+  # Backend Service URL (for frontend to communicate with backend)
+  BACKEND_URL: "http://backend-service:3000"
+  # Health check paths
+  BACKEND_HEALTH_PATH: "/health"
+  FRONTEND_HEALTH_PATH: "/"

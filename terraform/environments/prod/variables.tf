@@ -41,29 +41,78 @@ variable "private_subnet_cidrs" {
   default     = ["10.0.10.0/24", "10.0.20.0/24"]
 }
 
-# ECS Configuration
-variable "app_image" {
-  description = "Docker image for the application"
+# EKS Configuration
+variable "backend_image" {
+  description = "Docker image for the backend application"
   type        = string
-  default     = "ndmarket-app:latest"
+  default     = "ndmarket-backend:latest"
 }
 
-variable "task_cpu" {
-  description = "CPU units for ECS task (256 = 0.25 vCPU)"
+variable "frontend_image" {
+  description = "Docker image for the frontend application"
   type        = string
-  default     = "512"
+  default     = "ndmarket-frontend:latest"
 }
 
-variable "task_memory" {
-  description = "Memory for ECS task in MB"
+variable "kubernetes_version" {
+  description = "Kubernetes version for EKS cluster"
   type        = string
-  default     = "1024"
+  default     = "1.29"
 }
 
-variable "desired_count" {
-  description = "Desired number of ECS tasks"
+variable "node_instance_types" {
+  description = "Instance types for EKS node group"
+  type        = list(string)
+  default     = ["t3.medium"]
+}
+
+variable "node_desired_size" {
+  description = "Desired number of nodes in the EKS node group"
   type        = number
   default     = 2
+}
+
+variable "node_min_size" {
+  description = "Minimum number of nodes in the EKS node group"
+  type        = number
+  default     = 1
+}
+
+variable "node_max_size" {
+  description = "Maximum number of nodes in the EKS node group"
+  type        = number
+  default     = 4
+}
+
+# Database Configuration (for AWS Secrets Manager)
+variable "db_host" {
+  description = "Database host (GCP Cloud SQL)"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_port" {
+  description = "Database port"
+  type        = string
+  default     = "3306"
+}
+
+variable "db_username" {
+  description = "Database username"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_password" {
+  description = "Database password"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_database" {
+  description = "Database name"
+  type        = string
+  sensitive   = true
 }
 
 # Monitoring Configuration

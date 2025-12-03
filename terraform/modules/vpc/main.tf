@@ -33,15 +33,21 @@ resource "aws_subnet" "public" {
   availability_zone       = var.availability_zones[count.index]
   map_public_ip_on_launch = true
 
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-public-${var.availability_zones[count.index]}"
-    Project     = var.project_name
-    Environment = var.environment
-    Type        = "public"
-  }
+  tags = merge(
+    {
+      Name        = "${var.project_name}-${var.environment}-public-${var.availability_zones[count.index]}"
+      Project     = var.project_name
+      Environment = var.environment
+      Type        = "public"
+    },
+    var.enable_eks_tags ? {
+      "kubernetes.io/role/elb"                      = "1"
+      "kubernetes.io/cluster/${var.eks_cluster_name}" = "shared"
+    } : {}
+  )
 }
 
-# Private Subnets (for ECS Fargate)
+# Private Subnets (for EKS/ECS workloads)
 resource "aws_subnet" "private" {
   count = length(var.availability_zones)
 
@@ -49,12 +55,18 @@ resource "aws_subnet" "private" {
   cidr_block        = var.private_subnet_cidrs[count.index]
   availability_zone = var.availability_zones[count.index]
 
-  tags = {
-    Name        = "${var.project_name}-${var.environment}-private-${var.availability_zones[count.index]}"
-    Project     = var.project_name
-    Environment = var.environment
-    Type        = "private"
-  }
+  tags = merge(
+    {
+      Name        = "${var.project_name}-${var.environment}-private-${var.availability_zones[count.index]}"
+      Project     = var.project_name
+      Environment = var.environment
+      Type        = "private"
+    },
+    var.enable_eks_tags ? {
+      "kubernetes.io/role/internal-elb"               = "1"
+      "kubernetes.io/cluster/${var.eks_cluster_name}" = "shared"
+    } : {}
+  )
 }
 
 # Elastic IP for NAT Gateway

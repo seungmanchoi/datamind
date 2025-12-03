@@ -1,18 +1,22 @@
-# Multi-stage Dockerfile for NestJS Application
+# Multi-stage Dockerfile for NestJS Backend Application
 # Stage 1: Build
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy source files
-COPY . .
+# Install dependencies
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# Copy source files (excluding frontend)
+COPY tsconfig*.json nest-cli.json ./
+COPY src ./src
 
 # Build application
-RUN yarn build
+RUN pnpm run build
 
 # Stage 2: Production
 FROM node:20-alpine AS production
@@ -20,18 +24,20 @@ FROM node:20-alpine AS production
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
 
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 # Create app directory
 WORKDIR /app
 
 # Copy package files
-COPY package.json yarn.lock ./
+COPY package.json pnpm-lock.yaml ./
 
 # Install production dependencies only
-RUN yarn install --production --frozen-lockfile && yarn cache clean
+RUN pnpm install --prod --frozen-lockfile && pnpm store prune
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/public ./public
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
