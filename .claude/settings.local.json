@@ -34,7 +34,20 @@
       "Bash(cd:*)",
       "mcp__playwright__browser_navigate",
       "Bash(yarn lint:*)",
-      "Bash(yarn run format:*)"
+      "Bash(yarn run format:*)",
+      "Bash(npx prettier:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx eslint:*)",
+      "Bash(pnpm remove:*)",
+      "Bash(pnpm run build:all:*)",
+      "Bash(npx nest build:*)",
+      "Bash(frontend/src/components/pages/EmbeddingPage.tsx )",
+      "Bash(frontend/src/components/Navigation.tsx )",
+      "Bash(frontend/src/lib/api.ts )",
+      "Bash(src/modules/indexing/indexing.controller.ts )",
+      "Bash(src/modules/indexing/indexing.service.ts )",
+      "Bash(src/modules/indexing/dto/)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

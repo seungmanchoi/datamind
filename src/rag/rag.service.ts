@@ -79,6 +79,7 @@ export class RagService {
       }
 
       // 3. 결과 변환
+      // 저장 구조: description(예제 설명), sql(SQL 쿼리), embedding
       interface OpenSearchHit {
         _source: { description: string; sql: string };
         _score: number;
@@ -186,7 +187,13 @@ export class RagService {
 
       const hits = searchResponse.body.hits.hits;
 
-      return hits.map((hit: any) => ({
+      interface FilteredHit {
+        _source: { description: string; sql: string };
+        _score: number;
+      }
+      const typedHits = hits as unknown as FilteredHit[];
+
+      return typedHits.map((hit) => ({
         description: hit._source.description,
         sql: hit._source.sql,
         score: hit._score,
