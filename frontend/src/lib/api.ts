@@ -8,7 +8,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 // Axios 인스턴스 생성
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 120000, // 2분 (AI 분석에 시간이 걸릴 수 있음)
+  timeout: 300000, // 5분 (Multi-Agent 분석에 시간이 걸릴 수 있음)
   headers: {
     'Content-Type': 'application/json',
   },
@@ -17,12 +17,198 @@ export const apiClient = axios.create({
 // API 엔드포인트
 export const API_ENDPOINTS = {
   agentQuery: '/query',
+  multiAgentQuery: '/multi-agent/query',
   semanticSearch: '/search/semantic',
   hybridSearch: '/search/hybrid',
   examples: '/indexing/examples',
   indexProducts: '/indexing/products',
   health: '/health',
 } as const;
+
+// ============================================
+// Multi-Agent 시스템 타입 정의
+// ============================================
+
+export type InsightType =
+  | 'summary'
+  | 'trend'
+  | 'comparison'
+  | 'anomaly'
+  | 'ranking'
+  | 'distribution'
+  | 'correlation'
+  | 'prediction'
+  | 'recommendation'
+  | 'warning'
+  | 'opportunity'
+  | 'benchmark';
+
+export interface InsightItem {
+  id: string;
+  type: InsightType;
+  icon: string;
+  title: string;
+  content: string;
+  importance: 'high' | 'medium' | 'low';
+  confidence: number;
+  actionable: boolean;
+  supportingData?: Record<string, unknown>;
+  trend?: 'up' | 'down' | 'stable';
+  changePercent?: number;
+  comparedTo?: string;
+}
+
+export interface InsightSection {
+  summary: string;
+  items: InsightItem[];
+  overallConfidence: number;
+}
+
+export type ChartType =
+  | 'bar'
+  | 'horizontal_bar'
+  | 'line'
+  | 'area'
+  | 'pie'
+  | 'donut'
+  | 'scatter'
+  | 'heatmap'
+  | 'treemap'
+  | 'funnel'
+  | 'gauge'
+  | 'table'
+  | 'metric_card'
+  | 'comparison'
+  | 'sparkline';
+
+export interface ChartDataset {
+  label: string;
+  data: number[];
+  backgroundColor?: string | string[];
+  borderColor?: string;
+  borderWidth?: number;
+  fill?: boolean;
+}
+
+export interface ChartData {
+  labels?: string[];
+  datasets: ChartDataset[];
+}
+
+export interface ChartInteractions {
+  clickable: boolean;
+  hoverable: boolean;
+  zoomable: boolean;
+  downloadable: boolean;
+}
+
+export interface ChartConfig {
+  id: string;
+  type: ChartType;
+  title: string;
+  subtitle?: string;
+  data: ChartData;
+  options: Record<string, unknown>;
+  interactions?: ChartInteractions;
+}
+
+export interface ExtraVisualization {
+  type: 'metric_card' | 'comparison_card' | 'sparkline' | 'progress';
+  data: Record<string, unknown>;
+}
+
+export interface VisualizationSection {
+  recommended: boolean;
+  reason?: string;
+  primary?: ChartConfig;
+  alternatives?: ChartConfig[];
+  extras?: ExtraVisualization[];
+}
+
+export interface ColumnDefinition {
+  name: string;
+  type: 'string' | 'number' | 'date' | 'currency' | 'percentage';
+  label: string;
+  format?: string;
+  sortable?: boolean;
+  width?: number;
+}
+
+export interface SqlDataSection {
+  query: string;
+  explanation: string;
+  columns: ColumnDefinition[];
+  rows: Record<string, unknown>[];
+  rowCount: number;
+  executionTime: number;
+}
+
+export interface SearchResultItem {
+  id: string;
+  name: string;
+  description?: string;
+  score: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface SearchDataSection {
+  type: 'semantic' | 'hybrid' | 'keyword';
+  results: SearchResultItem[];
+  totalCount: number;
+}
+
+export interface DataSection {
+  sql?: SqlDataSection;
+  search?: SearchDataSection;
+  aggregations?: Record<string, number | string>;
+}
+
+export interface FollowUpQuestion {
+  id: string;
+  text: string;
+  category: 'deep_dive' | 'comparison' | 'expansion' | 'action';
+  icon: string;
+  autoQuery?: string;
+}
+
+export interface FollowUpSection {
+  enabled: boolean;
+  questions: FollowUpQuestion[];
+}
+
+export type ResponseType =
+  | 'data_only'
+  | 'data_with_insight'
+  | 'full_analysis'
+  | 'search_result'
+  | 'comparison'
+  | 'error';
+
+export interface ResponseMeta {
+  requestId: string;
+  query: string;
+  timestamp: string;
+  processingTime: number;
+  agentsUsed: string[];
+  confidence: number;
+  responseType: ResponseType;
+}
+
+export interface ErrorSection {
+  code: string;
+  message: string;
+  details?: string;
+  suggestion?: string;
+}
+
+export interface MultiAgentResponse {
+  meta: ResponseMeta;
+  data?: DataSection;
+  insights?: InsightSection;
+  visualizations?: VisualizationSection;
+  followUp?: FollowUpSection;
+  error?: ErrorSection;
+}
 
 // API 응답 타입
 export interface QueryResult {
@@ -136,9 +322,15 @@ export interface UpdateExampleResponse {
 
 // API 호출 함수
 export const api = {
-  // AI 질의 실행
+  // AI 질의 실행 (기존 단일 에이전트)
   async queryAgent(query: string): Promise<AgentQueryResponse> {
     const response = await apiClient.post<AgentQueryResponse>(API_ENDPOINTS.agentQuery, { query });
+    return response.data;
+  },
+
+  // Multi-Agent 질의 실행
+  async queryMultiAgent(query: string): Promise<MultiAgentResponse> {
+    const response = await apiClient.post<MultiAgentResponse>(API_ENDPOINTS.multiAgentQuery, { query });
     return response.data;
   },
 

@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
 
 import { AgentsModule } from '@/agents/agents.module';
+import { MultiAgentModule } from '@/agents/multi-agent/multi-agent.module';
 import { AppController } from '@/app.controller';
 import { AppService } from '@/app.service';
 import { BedrockService } from '@/common/bedrock.service';
@@ -27,7 +28,7 @@ import { RagModule } from '@/rag/rag.module';
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '..', 'frontend', 'dist'),
-      exclude: ['/api*', '/agent*', '/search*', '/indexing*'],
+      exclude: ['/api*', '/agent*', '/multi-agent*', '/search*', '/indexing*'],
     }),
     SecretsModule,
     TypeOrmModule.forRootAsync({
@@ -50,6 +51,7 @@ import { RagModule } from '@/rag/rag.module';
     }),
     QueryModule,
     AgentsModule,
+    MultiAgentModule,
     IndexingModule,
     SearchModule,
     RagModule,

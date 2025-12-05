@@ -7,6 +7,10 @@ import { AppModule } from '@/app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // HTTP 서버 타임아웃 설정 (5분)
+  const server = app.getHttpServer();
+  server.setTimeout(300000); // 300초 = 5분
+
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({

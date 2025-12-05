@@ -1,0 +1,170 @@
+import { useState } from 'react';
+import { Search, Loader2, Users, Sparkles } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
+import { api, type MultiAgentResponse } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { ResponseContainer } from '@/components/multi-agent';
+
+export default function MultiAgentPage() {
+  const [query, setQuery] = useState('');
+  const [result, setResult] = useState<MultiAgentResponse | null>(null);
+
+  const queryMutation = useMutation({
+    mutationFn: (queryText: string) => api.queryMultiAgent(queryText),
+    onSuccess: (data) => {
+      setResult(data);
+
+      // 히스토리에 저장 (LocalStorage)
+      const history = JSON.parse(localStorage.getItem('multi_agent_history') || '[]');
+      history.unshift({
+        query: data.meta.query,
+        result: data,
+        timestamp: new Date().toISOString(),
+      });
+      localStorage.setItem('multi_agent_history', JSON.stringify(history.slice(0, 50)));
+    },
+    onError: (error) => {
+      console.error('Multi-Agent query error:', error);
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) {
+      queryMutation.mutate(query.trim());
+    }
+  };
+
+  const handleFollowUpClick = (followUpQuery: string) => {
+    setQuery(followUpQuery);
+    queryMutation.mutate(followUpQuery);
+  };
+
+  const handleRetry = () => {
+    if (result?.meta.query) {
+      queryMutation.mutate(result.meta.query);
+    }
+  };
+
+  // 프리셋 예제 쿼리
+  const exampleQueries = [
+    '이번 달 매출 상위 10개 상품과 트렌드 분석',
+    '카테고리별 매출 비중과 개선 기회',
+    '매장별 성과 비교 및 인사이트',
+    '최근 주문 패턴 분석과 추천',
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* 헤더 */}
+      <div className="glass p-8 rounded-2xl shadow-lg">
+        <h2 className="text-2xl font-bold text-white flex items-center gap-3 mb-3">
+          <div className="bg-gradient-to-br from-violet-500 to-purple-600 p-2.5 rounded-xl shadow-lg shadow-violet-500/20">
+            <Users className="w-5 h-5 text-white" />
+          </div>
+          Multi-Agent 분석
+        </h2>
+        <p className="text-slate-400 leading-relaxed">
+          5개의 전문 AI 에이전트가 협력하여 종합적인 데이터 분석과 인사이트를 제공합니다.
+        </p>
+        <div className="flex flex-wrap gap-2 mt-4">
+          {['SQL 전문가', '검색 전문가', '인사이트 분석가', '차트 어드바이저', '후속 질문 생성'].map(
+            (agent) => (
+              <span
+                key={agent}
+                className="px-3 py-1 bg-violet-500/20 text-violet-300 rounded-full text-sm"
+              >
+                {agent}
+              </span>
+            )
+          )}
+        </div>
+      </div>
+
+      {/* 입력 폼 */}
+      <form onSubmit={handleSubmit} className="glass rounded-2xl shadow-lg p-6 space-y-4">
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="예: 이번 달 매출 상위 상품과 성장 트렌드를 분석해주세요"
+            className="flex-1 px-5 py-3.5 bg-slate-900/50 border border-white/10 rounded-xl
+                     focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500
+                     transition-all text-white placeholder:text-slate-500"
+            disabled={queryMutation.isPending}
+          />
+          <button
+            type="submit"
+            disabled={queryMutation.isPending || !query.trim()}
+            className={cn(
+              'px-6 py-3.5 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-medium',
+              'hover:shadow-lg hover:shadow-violet-500/30 transition-all flex items-center gap-2',
+              'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none'
+            )}
+          >
+            {queryMutation.isPending ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                분석 중
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-5 h-5" />
+                분석 실행
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* 프리셋 예제 버튼 */}
+        <div className="flex flex-wrap gap-2 pt-2">
+          <span className="text-sm text-slate-500 self-center mr-1 font-medium">예제 질의:</span>
+          {exampleQueries.map((example, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => setQuery(example)}
+              className="px-4 py-2 text-sm bg-white/5 hover:bg-white/10
+                       text-slate-300 hover:text-white rounded-lg border border-white/5
+                       transition-all duration-200 hover:shadow-sm hover:border-white/20"
+              disabled={queryMutation.isPending}
+            >
+              {example}
+            </button>
+          ))}
+        </div>
+      </form>
+
+      {/* 로딩 상태 */}
+      {queryMutation.isPending && (
+        <div className="glass border border-violet-500/20 rounded-2xl p-8 text-center">
+          <Loader2 className="w-10 h-10 animate-spin text-violet-500 mx-auto mb-3" />
+          <p className="text-violet-400 font-medium text-lg">Multi-Agent가 분석 중입니다...</p>
+          <p className="text-slate-500 text-sm mt-2">
+            여러 에이전트가 협력하여 종합적인 인사이트를 도출하고 있습니다
+          </p>
+        </div>
+      )}
+
+      {/* 에러 상태 (mutation 에러) */}
+      {queryMutation.isError && !result && (
+        <div className="glass border border-rose-500/30 rounded-2xl p-6">
+          <div className="flex items-center gap-3 text-rose-400">
+            <Search className="w-5 h-5" />
+            <span>질의 실행 중 오류가 발생했습니다. 다시 시도해주세요.</span>
+          </div>
+        </div>
+      )}
+
+      {/* 결과 표시 */}
+      {result && !queryMutation.isPending && (
+        <ResponseContainer
+          response={result}
+          onFollowUpClick={handleFollowUpClick}
+          onRetry={handleRetry}
+        />
+      )}
+    </div>
+  );
+}

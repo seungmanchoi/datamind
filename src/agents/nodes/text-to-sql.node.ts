@@ -1,4 +1,4 @@
-import { BedrockChat } from '@langchain/community/chat_models/bedrock';
+import { ChatBedrockConverse } from '@langchain/aws';
 import { RunnableConfig } from '@langchain/core/runnables';
 import { Logger } from '@nestjs/common';
 
@@ -18,7 +18,7 @@ export async function textToSqlNode(state: AgentStateType, config?: RunnableConf
 
   // Tool, LLM, RagService를 config에서 가져옴
   const schemaRetrieval = config?.configurable?.schemaRetrieval as SchemaRetrievalTool;
-  const chatModel = config?.configurable?.chatModel as BedrockChat;
+  const chatModel = config?.configurable?.chatModel as ChatBedrockConverse;
   const ragService = config?.configurable?.ragService as RagService | undefined;
 
   try {

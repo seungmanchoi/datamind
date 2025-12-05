@@ -1,4 +1,4 @@
-import { BedrockChat } from '@langchain/community/chat_models/bedrock';
+import { ChatBedrockConverse } from '@langchain/aws';
 
 export interface BedrockChatConfig {
   modelId?: string;
@@ -8,19 +8,21 @@ export interface BedrockChatConfig {
 }
 
 /**
- * Bedrock Chat 모델 생성
+ * Bedrock Chat 모델 생성 (ChatBedrockConverse 사용)
+ * AWS Bedrock Inference Profile 지원
  * @param config - 모델 설정
- * @returns BedrockChat 인스턴스
+ * @returns ChatBedrockConverse 인스턴스
  */
-export const createBedrockChatModel = (config: BedrockChatConfig = {}): BedrockChat => {
+export const createBedrockChatModel = (config: BedrockChatConfig = {}): ChatBedrockConverse => {
   const {
-    modelId = 'anthropic.claude-3-sonnet-20240229-v1:0',
+    // Cross-region inference profile ID 사용 (us. prefix)
+    modelId = process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
     region = process.env.AWS_REGION || 'us-east-1',
     temperature = 0,
     maxTokens = 4096,
   } = config;
 
-  return new BedrockChat({
+  return new ChatBedrockConverse({
     model: modelId,
     region,
     temperature,

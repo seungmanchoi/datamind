@@ -1,4 +1,4 @@
-import { BedrockChat } from '@langchain/community/chat_models/bedrock';
+import { ChatBedrockConverse } from '@langchain/aws';
 import { RunnableConfig } from '@langchain/core/runnables';
 
 import { AgentStateType, setSummary } from '@/agents/state';
@@ -21,7 +21,7 @@ export async function insightSummarizerNode(
   }
 
   // LLM을 config에서 가져옴
-  const chatModel = config?.configurable?.chatModel as BedrockChat;
+  const chatModel = config?.configurable?.chatModel as ChatBedrockConverse;
 
   try {
     // 인사이트 생성 프롬프트 (SQL 또는 Semantic Search)
