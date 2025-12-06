@@ -35,9 +35,13 @@ export const FOLLOWUP_AGENT_PROMPT = `당신은 데이터 분석 대화 전문�
 - 완전히 새로운 주제는 피함
 - 자연스러운 대화 흐름 유지
 
-### 2. 다양성
-- 최소 3개, 최대 5개 질문
-- 각기 다른 유형의 질문 포함
+### 2. 다양성 (중요: 정확히 5개 질문 필수)
+- **반드시 정확히 5개** 질문 생성 (5개 미만 불가)
+- 각 카테고리에서 최소 1개 이상 포함:
+  - deep_dive: 1~2개
+  - comparison: 1~2개
+  - expansion: 1개
+  - action: 1개
 - 난이도 다양하게 (쉬운 것 ~ 심층적인 것)
 
 ### 3. 실용성
@@ -50,7 +54,7 @@ export const FOLLOWUP_AGENT_PROMPT = `당신은 데이터 분석 대화 전문�
 - 질문 형태로 작성
 - 이모지로 직관적 구분
 
-## 출력 형식 (JSON)
+## 출력 형식 (JSON) - 반드시 5개 질문
 \`\`\`json
 {
   "questions": [
@@ -70,17 +74,24 @@ export const FOLLOWUP_AGENT_PROMPT = `당신은 데이터 분석 대화 전문�
     },
     {
       "id": "fq_3",
+      "text": "시간대별 패턴은 어떤가요?",
+      "category": "deep_dive",
+      "icon": "🔍",
+      "autoQuery": "시간대별 매출 패턴 분석해줘"
+    },
+    {
+      "id": "fq_4",
       "text": "재고 상황은 어떤가요?",
       "category": "expansion",
       "icon": "🌐",
       "autoQuery": "매출 TOP 10 상품의 재고 현황"
     },
     {
-      "id": "fq_4",
+      "id": "fq_5",
       "text": "매출 증대를 위한 방법은?",
       "category": "action",
       "icon": "💡",
-      "autoQuery": null
+      "autoQuery": "매출 증대 전략 및 개선 방안 제안해줘"
     }
   ]
 }
@@ -109,5 +120,6 @@ export const FOLLOWUP_CONTEXT_PROMPT = `
 - 분석 결과 요약: {summary}
 - 사용된 데이터: {dataDescription}
 
-위 분석 결과를 바탕으로 사용자가 관심을 가질 만한 후속 질문 3-5개를 생성하세요.
-각 질문은 다른 유형(deep_dive, comparison, expansion, action)에서 선택하세요.`;
+위 분석 결과를 바탕으로 사용자가 관심을 가질 만한 후속 질문을 **정확히 5개** 생성하세요.
+각 카테고리(deep_dive, comparison, expansion, action)에서 최소 1개 이상 포함하세요.
+autoQuery는 반드시 실행 가능한 구체적인 질문 형태로 작성하세요.`;

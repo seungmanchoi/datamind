@@ -31,6 +31,45 @@ interface Props {
   onRemoveQuestion: (id: string) => void;
 }
 
+// 기본 추천 질문 (AI 응답이 없을 때 표시)
+const defaultRecommendedQuestions: FollowUpQuestion[] = [
+  {
+    id: 'default_1',
+    text: '이번 달 매출 상위 10개 상품은?',
+    category: 'deep_dive',
+    icon: '🔍',
+    autoQuery: '이번 달 매출 상위 10개 상품 분석해줘',
+  },
+  {
+    id: 'default_2',
+    text: '지난 달과 매출 비교해줘',
+    category: 'comparison',
+    icon: '📊',
+    autoQuery: '지난 달과 이번 달 매출 비교 분석해줘',
+  },
+  {
+    id: 'default_3',
+    text: '카테고리별 매출 현황은?',
+    category: 'deep_dive',
+    icon: '🔍',
+    autoQuery: '카테고리별 매출 현황 분석해줘',
+  },
+  {
+    id: 'default_4',
+    text: '매장별 성과 비교해줘',
+    category: 'expansion',
+    icon: '🌐',
+    autoQuery: '매장별 성과 비교 분석해줘',
+  },
+  {
+    id: 'default_5',
+    text: '매출 개선을 위한 인사이트는?',
+    category: 'action',
+    icon: '💡',
+    autoQuery: '매출 개선을 위한 인사이트와 전략 제안해줘',
+  },
+];
+
 const categoryConfig: Record<
   FollowUpQuestion['category'],
   { icon: React.ElementType; color: string; bgColor: string; label: string }
@@ -288,12 +327,45 @@ export default function FollowUpPanel({
             </div>
           )}
 
-          {/* 질문이 없을 때 */}
-          {allQuestions.length === 0 && (
-            <div className="text-center py-6 text-slate-400">
-              <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">아직 후속 질문이 없습니다.</p>
-              <p className="text-xs mt-1">위 입력창에서 직접 질문을 추가하거나, 분석 후 AI 추천을 받아보세요.</p>
+          {/* AI 추천이 없을 때 기본 추천 질문 표시 */}
+          {currentQuestions.length === 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm text-slate-400">
+                <Sparkles className="w-4 h-4 text-cyan-400" />
+                <span>추천 질문</span>
+                <span className="text-xs text-slate-500">(자주 사용되는 분석)</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {defaultRecommendedQuestions.map((question) => {
+                  const config = categoryConfig[question.category];
+                  const Icon = config.icon;
+
+                  return (
+                    <button
+                      key={question.id}
+                      onClick={() => onQuestionClick(question.autoQuery || question.text)}
+                      className={cn(
+                        'flex items-center gap-2 px-4 py-2.5 rounded-xl',
+                        'border border-white/10 transition-all duration-200',
+                        'hover:border-white/20 hover:shadow-lg',
+                        config.bgColor,
+                      )}
+                    >
+                      <Icon className={cn('w-4 h-4', config.color)} />
+                      <span className="text-slate-200 text-sm">{question.text}</span>
+                      <span
+                        className={cn(
+                          'text-xs px-1.5 py-0.5 rounded',
+                          config.bgColor.replace('hover:', ''),
+                          config.color,
+                        )}
+                      >
+                        {config.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
