@@ -59,8 +59,10 @@ export function createSqlExpertAgent(model: ChatBedrockConverse, dataSource: Dat
     })
     .addEdge('tools', 'agent');
 
-  // 컴파일
-  const agent = workflow.compile();
+  // 컴파일 (name 필수)
+  const agent = workflow.compile({
+    name: 'sql_expert',
+  });
 
   return agent;
 }
