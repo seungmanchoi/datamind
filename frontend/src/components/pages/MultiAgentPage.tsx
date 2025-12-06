@@ -1,18 +1,43 @@
-import { useState } from 'react';
-import { Search, Loader2, Users, Sparkles } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
-import { api, type MultiAgentResponse } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { Loader2, Search, Sparkles, Users } from 'lucide-react';
+import { useCallback, useState } from 'react';
+
 import { ResponseContainer } from '@/components/multi-agent';
+import FollowUpPanel, { type ExtendedFollowUpQuestion } from '@/components/multi-agent/followup/FollowUpPanel';
+import { type FollowUpQuestion, type MultiAgentResponse, api } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 export default function MultiAgentPage() {
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<MultiAgentResponse | null>(null);
+  const [isFollowUp, setIsFollowUp] = useState(false);
+
+  // 후속 질문 히스토리 관리
+  const [followUpHistory, setFollowUpHistory] = useState<ExtendedFollowUpQuestion[]>([]);
 
   const queryMutation = useMutation({
     mutationFn: (queryText: string) => api.queryMultiAgent(queryText),
     onSuccess: (data) => {
       setResult(data);
+
+      // 새로운 후속 질문을 히스토리에 추가 (중복 제거)
+      if (data.followUp?.questions && data.followUp.questions.length > 0) {
+        const newQuestions: ExtendedFollowUpQuestion[] = data.followUp.questions.map((q) => ({
+          ...q,
+          source: 'ai' as const,
+          timestamp: Date.now(),
+        }));
+
+        setFollowUpHistory((prev) => {
+          const combined = [...prev];
+          newQuestions.forEach((newQ) => {
+            if (!combined.find((existing) => existing.text === newQ.text)) {
+              combined.push(newQ);
+            }
+          });
+          return combined;
+        });
+      }
 
       // 히스토리에 저장 (LocalStorage)
       const history = JSON.parse(localStorage.getItem('multi_agent_history') || '[]');
@@ -31,14 +56,34 @@ export default function MultiAgentPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
+      // 새 질문이므로 후속 질문 히스토리 초기화
+      setFollowUpHistory([]);
+      setIsFollowUp(false);
       queryMutation.mutate(query.trim());
     }
   };
 
-  const handleFollowUpClick = (followUpQuery: string) => {
-    setQuery(followUpQuery);
-    queryMutation.mutate(followUpQuery);
-  };
+  const handleFollowUpClick = useCallback(
+    (followUpQuery: string) => {
+      setQuery(followUpQuery);
+      setIsFollowUp(true);
+      queryMutation.mutate(followUpQuery);
+    },
+    [queryMutation],
+  );
+
+  const handleAddFollowUp = useCallback((question: ExtendedFollowUpQuestion) => {
+    setFollowUpHistory((prev) => {
+      if (prev.find((q) => q.text === question.text)) {
+        return prev;
+      }
+      return [...prev, question];
+    });
+  }, []);
+
+  const handleRemoveFollowUp = useCallback((id: string) => {
+    setFollowUpHistory((prev) => prev.filter((q) => q.id !== id));
+  }, []);
 
   const handleRetry = () => {
     if (result?.meta.query) {
@@ -54,6 +99,9 @@ export default function MultiAgentPage() {
     '최근 주문 패턴 분석과 추천',
   ];
 
+  // 현재 응답의 후속 질문
+  const currentFollowUpQuestions: FollowUpQuestion[] = result?.followUp?.questions || [];
+
   return (
     <div className="space-y-6">
       {/* 헤더 */}
@@ -68,16 +116,11 @@ export default function MultiAgentPage() {
           5개의 전문 AI 에이전트가 협력하여 종합적인 데이터 분석과 인사이트를 제공합니다.
         </p>
         <div className="flex flex-wrap gap-2 mt-4">
-          {['SQL 전문가', '검색 전문가', '인사이트 분석가', '차트 어드바이저', '후속 질문 생성'].map(
-            (agent) => (
-              <span
-                key={agent}
-                className="px-3 py-1 bg-violet-500/20 text-violet-300 rounded-full text-sm"
-              >
-                {agent}
-              </span>
-            )
-          )}
+          {['SQL 전문가', '검색 전문가', '인사이트 분석가', '차트 어드바이저', '후속 질문 생성'].map((agent) => (
+            <span key={agent} className="px-3 py-1 bg-violet-500/20 text-violet-300 rounded-full text-sm">
+              {agent}
+            </span>
+          ))}
         </div>
       </div>
 
@@ -100,7 +143,7 @@ export default function MultiAgentPage() {
             className={cn(
               'px-6 py-3.5 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-medium',
               'hover:shadow-lg hover:shadow-violet-500/30 transition-all flex items-center gap-2',
-              'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none'
+              'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none',
             )}
           >
             {queryMutation.isPending ? (
@@ -136,13 +179,26 @@ export default function MultiAgentPage() {
         </div>
       </form>
 
+      {/* 후속 질문 패널 (결과가 있거나 히스토리가 있을 때 표시) */}
+      {(result || followUpHistory.length > 0) && !queryMutation.isPending && (
+        <FollowUpPanel
+          currentQuestions={currentFollowUpQuestions}
+          historyQuestions={followUpHistory.filter((h) => !currentFollowUpQuestions.find((c) => c.text === h.text))}
+          onQuestionClick={handleFollowUpClick}
+          onAddQuestion={handleAddFollowUp}
+          onRemoveQuestion={handleRemoveFollowUp}
+        />
+      )}
+
       {/* 로딩 상태 */}
       {queryMutation.isPending && (
         <div className="glass border border-violet-500/20 rounded-2xl p-8 text-center">
           <Loader2 className="w-10 h-10 animate-spin text-violet-500 mx-auto mb-3" />
           <p className="text-violet-400 font-medium text-lg">Multi-Agent가 분석 중입니다...</p>
           <p className="text-slate-500 text-sm mt-2">
-            여러 에이전트가 협력하여 종합적인 인사이트를 도출하고 있습니다
+            {isFollowUp
+              ? '후속 질문에 대한 심층 분석을 진행하고 있습니다'
+              : '여러 에이전트가 협력하여 종합적인 인사이트를 도출하고 있습니다'}
           </p>
         </div>
       )}
@@ -157,10 +213,13 @@ export default function MultiAgentPage() {
         </div>
       )}
 
-      {/* 결과 표시 */}
+      {/* 결과 표시 (후속 질문 섹션 제외 - FollowUpPanel에서 관리) */}
       {result && !queryMutation.isPending && (
         <ResponseContainer
-          response={result}
+          response={{
+            ...result,
+            followUp: undefined, // 후속 질문은 FollowUpPanel에서 관리
+          }}
           onFollowUpClick={handleFollowUpClick}
           onRetry={handleRetry}
         />

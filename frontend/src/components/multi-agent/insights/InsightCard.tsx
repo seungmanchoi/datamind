@@ -88,7 +88,7 @@ export default function InsightCard({ insight }: Props) {
           </div>
 
           {/* 본문 */}
-          <p className="text-slate-300 text-sm leading-relaxed">{insight.content}</p>
+          <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">{insight.content}</p>
 
           {/* 트렌드 및 변화율 */}
           {(insight.trend || insight.changePercent !== undefined) && (

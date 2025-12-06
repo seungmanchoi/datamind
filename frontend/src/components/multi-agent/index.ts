@@ -11,4 +11,5 @@ export { ChartComponent } from './visualizations';
 export { DataTable } from './data';
 
 // Follow-up Components
-export { FollowUpQuestions } from './followup';
+export { FollowUpQuestions, FollowUpPanel } from './followup';
+export type { ExtendedFollowUpQuestion } from './followup';

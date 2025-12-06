@@ -46,22 +46,27 @@ export default function InsightsList({ summary, items, overallConfidence }: Prop
       {/* 요약 */}
       {summary && (
         <div className="px-6 py-4 border-b border-white/5">
-          <p className="text-slate-200 leading-relaxed">{summary}</p>
+          <p className="text-slate-200 leading-relaxed whitespace-pre-line">{summary}</p>
         </div>
       )}
 
-      {/* 인사이트 목록 */}
-      <div className="p-6">
-        {sortedItems.length > 0 ? (
+      {/* 인사이트 목록 - items가 있을 때만 표시 */}
+      {sortedItems.length > 0 && (
+        <div className="p-6">
           <div className="grid gap-4">
             {sortedItems.map((item) => (
               <InsightCard key={item.id} insight={item} />
             ))}
           </div>
-        ) : (
+        </div>
+      )}
+
+      {/* summary와 items 모두 없을 때만 "없습니다" 표시 */}
+      {!summary && sortedItems.length === 0 && (
+        <div className="p-6">
           <p className="text-center text-slate-400 py-8">분석된 인사이트가 없습니다.</p>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

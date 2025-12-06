@@ -5,6 +5,8 @@ import InsightsList from '../insights/InsightsList';
 import ChartComponent from '../visualizations/ChartComponent';
 import DataTable from '../data/DataTable';
 import FollowUpQuestions from '../followup/FollowUpQuestions';
+import WorkflowVisualization from '../workflow/WorkflowVisualization';
+import SqlQueryHistory from '../workflow/SqlQueryHistory';
 
 interface Props {
   response: MultiAgentResponse;
@@ -13,7 +15,7 @@ interface Props {
 }
 
 export default function ResponseContainer({ response, onFollowUpClick, onRetry }: Props) {
-  const { meta, data, insights, visualizations, followUp, error } = response;
+  const { meta, data, insights, visualizations, followUp, workflow, error } = response;
 
   // 에러 응답 처리
   if (error) {
@@ -29,6 +31,16 @@ export default function ResponseContainer({ response, onFollowUpClick, onRetry }
     <div className="space-y-6">
       {/* 메타 정보 */}
       <ResponseMeta meta={meta} />
+
+      {/* 워크플로우 시각화 */}
+      {workflow && workflow.steps.length > 0 && (
+        <WorkflowVisualization steps={workflow.steps} totalDuration={workflow.totalDuration} />
+      )}
+
+      {/* SQL 쿼리 히스토리 */}
+      {workflow && workflow.queryHistory.length > 0 && (
+        <SqlQueryHistory queries={workflow.queryHistory} />
+      )}
 
       {/* 인사이트 섹션 */}
       {insights && (

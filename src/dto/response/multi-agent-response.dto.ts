@@ -167,6 +167,41 @@ export interface FollowUpSection {
 }
 
 // ============================================
+// 워크플로우 추적 타입
+// ============================================
+
+export type WorkflowStepStatus = 'pending' | 'running' | 'completed' | 'error';
+
+export interface WorkflowStep {
+  id: string;
+  agent: string;
+  agentDisplayName: string;
+  status: WorkflowStepStatus;
+  startTime: number;
+  endTime?: number;
+  duration?: number;
+  input?: string;
+  output?: string;
+  error?: string;
+}
+
+export interface QueryHistoryItem {
+  id: string;
+  query: string;
+  timestamp: number;
+  executionTime: number;
+  rowCount: number;
+  success: boolean;
+  error?: string;
+}
+
+export interface WorkflowSection {
+  steps: WorkflowStep[];
+  totalDuration: number;
+  queryHistory: QueryHistoryItem[];
+}
+
+// ============================================
 // 메타 정보 타입
 // ============================================
 
@@ -209,6 +244,7 @@ export interface MultiAgentResponse {
   insights?: InsightSection;
   visualizations?: VisualizationSection;
   followUp?: FollowUpSection;
+  workflow?: WorkflowSection;
   error?: ErrorSection;
 }
 

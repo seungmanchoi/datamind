@@ -8,7 +8,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 // Axios 인스턴스 생성
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 300000, // 5분 (Multi-Agent 분석에 시간이 걸릴 수 있음)
+  timeout: 600000, // 10분 (Multi-Agent 복잡한 분석에 시간이 걸릴 수 있음)
   headers: {
     'Content-Type': 'application/json',
   },
@@ -176,6 +176,41 @@ export interface FollowUpSection {
   questions: FollowUpQuestion[];
 }
 
+// ============================================
+// 워크플로우 추적 타입
+// ============================================
+
+export type WorkflowStepStatus = 'pending' | 'running' | 'completed' | 'error';
+
+export interface WorkflowStep {
+  id: string;
+  agent: string;
+  agentDisplayName: string;
+  status: WorkflowStepStatus;
+  startTime: number;
+  endTime?: number;
+  duration?: number;
+  input?: string;
+  output?: string;
+  error?: string;
+}
+
+export interface QueryHistoryItem {
+  id: string;
+  query: string;
+  timestamp: number;
+  executionTime: number;
+  rowCount: number;
+  success: boolean;
+  error?: string;
+}
+
+export interface WorkflowSection {
+  steps: WorkflowStep[];
+  totalDuration: number;
+  queryHistory: QueryHistoryItem[];
+}
+
 export type ResponseType =
   | 'data_only'
   | 'data_with_insight'
@@ -207,6 +242,7 @@ export interface MultiAgentResponse {
   insights?: InsightSection;
   visualizations?: VisualizationSection;
   followUp?: FollowUpSection;
+  workflow?: WorkflowSection;
   error?: ErrorSection;
 }
 

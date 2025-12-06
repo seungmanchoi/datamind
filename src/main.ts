@@ -7,9 +7,9 @@ import { AppModule } from '@/app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // HTTP 서버 타임아웃 설정 (5분)
+  // HTTP 서버 타임아웃 설정 (10분 - Multi-Agent 복잡한 분석 대응)
   const server = app.getHttpServer();
-  server.setTimeout(300000); // 300초 = 5분
+  server.setTimeout(600000); // 600초 = 10분
 
   // Global validation pipe
   app.useGlobalPipes(
