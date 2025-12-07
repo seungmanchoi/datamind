@@ -4,7 +4,6 @@ import {
   History,
   Layers,
   MessageCircle,
-  Plus,
   Search,
   Sparkles,
   TrendingUp,
@@ -112,27 +111,35 @@ export default function FollowUpPanel({
   const [newQuestion, setNewQuestion] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<FollowUpQuestion['category']>('deep_dive');
 
-  const handleAddQuestion = () => {
+  // 질문 추가 후 바로 실행
+  const handleSubmitQuestion = () => {
     if (!newQuestion.trim()) return;
 
+    const questionText = newQuestion.trim();
+
+    // 히스토리에 추가
     const question: ExtendedFollowUpQuestion = {
       id: `user_${Date.now()}`,
-      text: newQuestion.trim(),
+      text: questionText,
       category: selectedCategory,
       icon: categoryConfig[selectedCategory].label,
-      autoQuery: newQuestion.trim(),
+      autoQuery: questionText,
       source: 'user',
       timestamp: Date.now(),
     };
-
     onAddQuestion(question);
+
+    // 바로 실행
+    onQuestionClick(questionText);
+
+    // 입력창 초기화
     setNewQuestion('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleAddQuestion();
+      handleSubmitQuestion();
     }
   };
 
@@ -182,8 +189,8 @@ export default function FollowUpPanel({
           {/* 사용자 질문 입력 */}
           <div className="bg-slate-900/50 rounded-xl p-4 border border-white/5">
             <div className="flex items-center gap-2 mb-3">
-              <Plus className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm font-medium text-white">질문 추가하기</span>
+              <Search className="w-4 h-4 text-cyan-400" />
+              <span className="text-sm font-medium text-white">직접 질문하기</span>
             </div>
             <div className="flex gap-2">
               <div className="flex-1 flex gap-2">
@@ -207,12 +214,12 @@ export default function FollowUpPanel({
                 />
               </div>
               <button
-                onClick={handleAddQuestion}
+                onClick={handleSubmitQuestion}
                 disabled={!newQuestion.trim()}
-                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:bg-slate-700 disabled:from-slate-700 disabled:to-slate-700 disabled:text-slate-500 text-white rounded-lg text-sm font-medium transition-all flex items-center gap-2 shadow-lg shadow-cyan-500/20 disabled:shadow-none"
               >
-                <Plus className="w-4 h-4" />
-                추가
+                <Sparkles className="w-4 h-4" />
+                실행
               </button>
             </div>
           </div>

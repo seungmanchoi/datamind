@@ -14,6 +14,7 @@ import {
   QueryHistoryItem,
   ResponseType,
   WorkflowStep,
+  WorkflowStepDetail,
   generateRequestId,
 } from '@/dto/response/multi-agent-response.dto';
 
@@ -29,6 +30,157 @@ const AGENT_DISPLAY_NAMES: Record<string, string> = {
 import { SearchService } from '@/modules/search/search.service';
 
 import { createMultiAgentWorkflow } from './multi-agent.workflow';
+
+/**
+ * 재시도 가능한 Bedrock 에러인지 확인
+ */
+function isRetryableError(error: Error): boolean {
+  const retryableMessages = [
+    'ThrottlingException',
+    'ServiceUnavailableException',
+    'ModelStreamErrorException',
+    'unable to process your request',
+    'Rate exceeded',
+    'Too many requests',
+    'temporarily unavailable',
+  ];
+  const errorMessage = error.message.toLowerCase();
+  return retryableMessages.some((msg) => errorMessage.includes(msg.toLowerCase()));
+}
+
+/**
+ * 지연 후 재시도를 위한 sleep 함수
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * 에이전트 출력에서 작업 요약 생성
+ */
+function generateAgentSummary(
+  agent: string,
+  content: string,
+  toolCalls?: { name: string; args: Record<string, unknown> }[],
+): { summary: string; details: WorkflowStepDetail[] } {
+  const details: WorkflowStepDetail[] = [];
+  let summary = '';
+
+  switch (agent) {
+    case 'supervisor': {
+      // Supervisor의 라우팅 결정 추출
+      if (content.includes('sql_expert')) {
+        summary = 'SQL 전문가에게 데이터 조회 요청';
+        details.push({ type: 'decision', label: '다음 에이전트', value: 'SQL 전문가' });
+      } else if (content.includes('insight_analyst')) {
+        summary = '인사이트 분석가에게 결과 분석 요청';
+        details.push({ type: 'decision', label: '다음 에이전트', value: '인사이트 분석가' });
+      } else if (content.includes('chart_advisor')) {
+        summary = '차트 어드바이저에게 시각화 요청';
+        details.push({ type: 'decision', label: '다음 에이전트', value: '차트 어드바이저' });
+      } else if (content.includes('followup_agent')) {
+        summary = '후속 질문 생성 에이전트 호출';
+        details.push({ type: 'decision', label: '다음 에이전트', value: '후속 질문 생성' });
+      } else if (content.includes('FINISH') || content.includes('완료')) {
+        summary = '모든 분석 완료, 결과 종합';
+        details.push({ type: 'decision', label: '상태', value: '워크플로우 완료' });
+      } else {
+        summary = '워크플로우 조율 및 에이전트 배정';
+      }
+      break;
+    }
+
+    case 'sql_expert': {
+      // SQL 쿼리 추출
+      if (toolCalls && toolCalls.length > 0) {
+        for (const tc of toolCalls) {
+          if (tc.name === 'execute_sql' && tc.args?.query) {
+            const query = String(tc.args.query);
+            summary = 'SQL 쿼리 생성 및 실행';
+            details.push({ type: 'query', label: '실행된 쿼리', value: query });
+
+            // 쿼리 유형 분석
+            if (query.toUpperCase().includes('GROUP BY')) {
+              details.push({ type: 'insight', label: '쿼리 유형', value: '집계 분석' });
+            } else if (query.toUpperCase().includes('ORDER BY')) {
+              details.push({ type: 'insight', label: '쿼리 유형', value: '정렬된 결과' });
+            } else if (query.toUpperCase().includes('JOIN')) {
+              details.push({ type: 'insight', label: '쿼리 유형', value: '테이블 조인' });
+            }
+          }
+        }
+      }
+      // Tool 결과에서 행 수 추출
+      const rowMatch = content.match(/"rowCount"\s*:\s*(\d+)/);
+      if (rowMatch) {
+        const rowCount = parseInt(rowMatch[1], 10);
+        details.push({ type: 'result', label: '조회 결과', value: `${rowCount}개 행` });
+        if (!summary) summary = `데이터 조회 완료 (${rowCount}건)`;
+      }
+      if (!summary) summary = 'SQL 쿼리 생성 및 데이터 조회';
+      break;
+    }
+
+    case 'insight_analyst': {
+      summary = '데이터 기반 인사이트 분석';
+      // 인사이트 키워드 추출
+      const insightKeywords = ['매출', '성장', '감소', '증가', '트렌드', '패턴', '분석', '비교', '상위', '하위'];
+      const foundKeywords = insightKeywords.filter((kw) => content.includes(kw));
+      if (foundKeywords.length > 0) {
+        details.push({ type: 'insight', label: '분석 주제', value: foundKeywords.slice(0, 3).join(', ') });
+      }
+      // 숫자 추출 (주요 지표)
+      const numberMatches = content.match(/(\d{1,3}(,\d{3})*(\.\d+)?)\s*(원|%|개|건)/g);
+      if (numberMatches && numberMatches.length > 0) {
+        details.push({ type: 'result', label: '주요 수치', value: numberMatches.slice(0, 2).join(', ') });
+      }
+      break;
+    }
+
+    case 'chart_advisor': {
+      summary = '데이터 시각화 차트 추천';
+      // 차트 유형 추출
+      const chartTypes: Record<string, string> = {
+        horizontal_bar: '가로 막대 차트',
+        bar: '막대 차트',
+        line: '라인 차트',
+        pie: '파이 차트',
+        donut: '도넛 차트',
+        area: '영역 차트',
+        scatter: '산점도',
+        table: '테이블',
+      };
+      for (const [type, name] of Object.entries(chartTypes)) {
+        if (content.includes(type)) {
+          details.push({ type: 'chart', label: '추천 차트', value: name });
+          summary = `${name} 시각화 생성`;
+          break;
+        }
+      }
+      break;
+    }
+
+    case 'followup_agent': {
+      summary = '후속 질문 5개 생성';
+      // 질문 수 추출
+      const questionMatches = content.match(/"text"\s*:\s*"([^"]+)"/g);
+      if (questionMatches) {
+        details.push({ type: 'question', label: '생성된 질문 수', value: `${questionMatches.length}개` });
+        // 첫 번째 질문 미리보기
+        const firstQuestion = questionMatches[0].match(/"text"\s*:\s*"([^"]+)"/);
+        if (firstQuestion) {
+          details.push({ type: 'question', label: '첫 번째 질문', value: firstQuestion[1] });
+        }
+      }
+      break;
+    }
+
+    default:
+      summary = `${agent} 작업 수행`;
+  }
+
+  return { summary, details };
+}
 
 /**
  * Multi-Agent 시스템 서비스
@@ -54,40 +206,102 @@ export class MultiAgentService {
   }
 
   /**
-   * Multi-Agent 워크플로우 실행
+   * Multi-Agent 워크플로우 실행 (재시도 로직 포함)
    */
   async executeQuery(query: string): Promise<MultiAgentResponse> {
     const requestId = generateRequestId();
     const startTime = Date.now();
+    const maxRetries = 3;
+    let lastError: Error | null = null;
 
-    this.logger.log(`\n${'='.repeat(60)}`);
-    this.logger.log(`[${requestId}] 🚀 Multi-Agent 워크플로우 시작`);
-    this.logger.log(`[${requestId}] 📝 질의: ${query}`);
-    this.logger.log(`${'='.repeat(60)}`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await this.executeQueryInternal(query, requestId, attempt);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        if (isRetryableError(lastError) && attempt < maxRetries) {
+          const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // 1s, 2s, 4s... max 10s
+          this.logger.warn(
+            `[${requestId}] ⚠️ 재시도 가능한 오류 발생 (시도 ${attempt}/${maxRetries}), ${backoffMs}ms 후 재시도...`,
+          );
+          this.logger.warn(`[${requestId}]   오류: ${lastError.message}`);
+          await sleep(backoffMs);
+        } else {
+          // 재시도 불가능한 에러 또는 마지막 시도 실패
+          break;
+        }
+      }
+    }
+
+    // 에러 발생 시 응답 반환
+    const processingTime = Date.now() - startTime;
+    const errorCode = lastError && isRetryableError(lastError) ? 'SERVICE_TEMPORARILY_UNAVAILABLE' : 'WORKFLOW_ERROR';
+    const suggestion =
+      lastError && isRetryableError(lastError)
+        ? '서비스가 일시적으로 과부하 상태입니다. 잠시 후 다시 시도해 주세요.'
+        : '질문을 다시 표현해 보시거나, 더 구체적인 질문을 해주세요.';
+
+    return {
+      meta: {
+        requestId,
+        query,
+        timestamp: new Date().toISOString(),
+        processingTime,
+        agentsUsed: [],
+        confidence: 0,
+        responseType: 'error',
+      },
+      error: {
+        code: errorCode,
+        message: lastError?.message || 'Unknown error occurred',
+        suggestion,
+      },
+    };
+  }
+
+  /**
+   * Multi-Agent 워크플로우 내부 실행
+   */
+  private async executeQueryInternal(
+    query: string,
+    requestId: string,
+    attempt: number,
+  ): Promise<MultiAgentResponse> {
+    const startTime = Date.now();
+
+    if (attempt === 1) {
+      this.logger.log(`\n${'='.repeat(60)}`);
+      this.logger.log(`[${requestId}] 🚀 Multi-Agent 워크플로우 시작`);
+      this.logger.log(`[${requestId}] 📝 질의: ${query}`);
+      this.logger.log(`${'='.repeat(60)}`);
+    } else {
+      this.logger.log(`[${requestId}] 🔄 재시도 ${attempt}번째...`);
+    }
 
     // 워크플로우 단계 추적
     const workflowSteps: WorkflowStep[] = [];
     const queryHistory: QueryHistoryItem[] = [];
     let stepCounter = 0;
 
+    // 스트리밍으로 각 단계 추적
+    let stepCount = 0;
+    const agentsInvoked: string[] = [];
+
     try {
-      // 스트리밍으로 각 단계 추적
-      let stepCount = 0;
-      const agentsInvoked: string[] = [];
-
       const stream = await this.workflow.stream(
-        { messages: [new HumanMessage(query)] },
-        { recursionLimit: 50 }, // ReAct 에이전트 도구 호출을 위해 충분한 한도 설정
-      );
+      { messages: [new HumanMessage(query)] },
+      { recursionLimit: 50 }, // ReAct 에이전트 도구 호출을 위해 충분한 한도 설정
+    );
 
-      let finalResult: { messages: (HumanMessage | AIMessage)[] } = { messages: [] };
+    let finalResult: { messages: (HumanMessage | AIMessage)[] } = { messages: [] };
 
-      for await (const chunk of stream) {
-        stepCount++;
-        const elapsed = Date.now() - startTime;
+    for await (const chunk of stream) {
+      stepCount++;
+      const elapsed = Date.now() - startTime;
 
-        // 청크 정보 로깅
-        this.logger.log(`\n[${requestId}] 📍 Step ${stepCount} (${elapsed}ms)`);
+      // 청크 정보 로깅
+      this.logger.log(`\n[${requestId}] 📍 Step ${stepCount} (${elapsed}ms)`);
 
         // 청크 키 확인 (어떤 노드가 실행되었는지)
         const chunkKeys = Object.keys(chunk);
@@ -117,6 +331,11 @@ export class MultiAgentService {
                 const content = typeof lastMsg.content === 'string' ? lastMsg.content : JSON.stringify(lastMsg.content);
                 step.output = content.substring(0, 300);
                 this.logger.log(`[${requestId}]   내용: ${content.substring(0, 200)}...`);
+
+                // 작업 요약 생성
+                const { summary, details } = generateAgentSummary('supervisor', content);
+                step.summary = summary;
+                step.details = details;
               }
             }
             workflowSteps.push(step);
@@ -137,6 +356,10 @@ export class MultiAgentService {
               duration: Date.now() - stepStartTime,
             };
 
+            // 요약 생성을 위한 전체 콘텐츠 수집
+            let allContent = '';
+            let toolCalls: { name: string; args: Record<string, unknown> }[] = [];
+
             if (nodeOutput?.messages) {
               const msgCount = nodeOutput.messages.length;
               this.logger.log(`[${requestId}]   메시지 수: ${msgCount}`);
@@ -146,6 +369,9 @@ export class MultiAgentService {
                 for (const msg of nodeOutput.messages) {
                   // AIMessage의 tool_calls에서 SQL 쿼리 추출
                   if (msg instanceof AIMessage && msg.tool_calls && msg.tool_calls.length > 0) {
+                    // tool_calls 수집
+                    toolCalls = [...toolCalls, ...msg.tool_calls];
+
                     for (const toolCall of msg.tool_calls) {
                       if (toolCall.name === 'execute_sql' && toolCall.args?.query) {
                         const sqlQuery = toolCall.args.query as string;
@@ -169,6 +395,7 @@ export class MultiAgentService {
 
                   // ToolMessage에서 실행 결과 추출하여 queryHistory 업데이트
                   const msgContent = typeof msg.content === 'string' ? msg.content : '';
+                  allContent += msgContent + '\n';
                   if (msgContent.includes('"success":true') && msgContent.includes('"data":')) {
                     try {
                       const parsed = JSON.parse(msgContent);
@@ -184,6 +411,12 @@ export class MultiAgentService {
                     }
                   }
                 }
+              } else {
+                // 다른 에이전트들의 콘텐츠 수집
+                for (const msg of nodeOutput.messages) {
+                  const msgContent = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+                  allContent += msgContent + '\n';
+                }
               }
 
               // 마지막 메시지 미리보기
@@ -194,6 +427,12 @@ export class MultiAgentService {
                 this.logger.log(`[${requestId}]   응답 미리보기: ${content.substring(0, 150)}...`);
               }
             }
+
+            // 작업 요약 생성
+            const { summary, details } = generateAgentSummary(key, allContent, toolCalls);
+            step.summary = summary;
+            step.details = details;
+
             workflowSteps.push(step);
           }
 
@@ -229,22 +468,8 @@ export class MultiAgentService {
       this.logger.error(`[${requestId}]   처리 시간: ${processingTime}ms`);
       this.logger.error(`${'='.repeat(60)}\n`);
 
-      return {
-        meta: {
-          requestId,
-          query,
-          timestamp: new Date().toISOString(),
-          processingTime,
-          agentsUsed: [],
-          confidence: 0,
-          responseType: 'error',
-        },
-        error: {
-          code: 'WORKFLOW_ERROR',
-          message: error instanceof Error ? error.message : 'Unknown error occurred',
-          suggestion: '질문을 다시 표현해 보시거나, 더 구체적인 질문을 해주세요.',
-        },
-      };
+      // 에러를 throw하여 외부 재시도 로직에서 처리
+      throw error;
     }
   }
 

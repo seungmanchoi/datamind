@@ -14,8 +14,13 @@ import {
   Sparkles,
   MessageSquare,
   Bot,
+  Code,
+  FileText,
+  Lightbulb,
+  ArrowRight,
+  HelpCircle,
 } from 'lucide-react';
-import type { WorkflowStep } from '@/lib/api';
+import type { WorkflowStep, WorkflowStepDetailType } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -38,6 +43,16 @@ const statusConfig = {
   running: { icon: Play, color: 'text-blue-400', label: '실행 중' },
   completed: { icon: CheckCircle2, color: 'text-emerald-400', label: '완료' },
   error: { icon: XCircle, color: 'text-rose-400', label: '오류' },
+};
+
+// 상세 정보 타입별 아이콘 및 스타일
+const detailTypeConfig: Record<WorkflowStepDetailType, { icon: React.ElementType; color: string }> = {
+  query: { icon: Code, color: 'text-blue-400' },
+  result: { icon: FileText, color: 'text-emerald-400' },
+  insight: { icon: Lightbulb, color: 'text-amber-400' },
+  chart: { icon: BarChart3, color: 'text-pink-400' },
+  decision: { icon: ArrowRight, color: 'text-violet-400' },
+  question: { icon: HelpCircle, color: 'text-cyan-400' },
 };
 
 export default function WorkflowVisualization({ steps, totalDuration }: Props) {
@@ -134,21 +149,59 @@ export default function WorkflowVisualization({ steps, totalDuration }: Props) {
                             <StatusIcon className="w-4 h-4" />
                           </div>
                         </div>
+                        {/* 요약 (항상 표시) */}
+                        {step.summary && (
+                          <p className="text-xs text-slate-300 mt-1">{step.summary}</p>
+                        )}
+
                         {step.duration !== undefined && (
-                          <div className="flex items-center gap-2 text-xs text-slate-400">
+                          <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
                             <Clock className="w-3 h-3" />
                             <span>{step.duration}ms</span>
                           </div>
                         )}
 
-                        {/* 확장된 출력 */}
-                        {isSelected && step.output && (
-                          <div className="mt-3 pt-3 border-t border-white/10">
-                            <p className="text-xs text-slate-300 whitespace-pre-wrap break-words">
-                              {step.output.length > 200
-                                ? `${step.output.substring(0, 200)}...`
-                                : step.output}
-                            </p>
+                        {/* 확장된 상세 정보 */}
+                        {isSelected && (step.details?.length || step.output) && (
+                          <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+                            {/* 상세 정보 항목들 */}
+                            {step.details && step.details.length > 0 && (
+                              <div className="space-y-2">
+                                {step.details.map((detail, idx) => {
+                                  const detailConfig = detailTypeConfig[detail.type];
+                                  const DetailIcon = detailConfig?.icon || FileText;
+                                  const detailColor = detailConfig?.color || 'text-slate-400';
+
+                                  return (
+                                    <div key={idx} className="flex items-start gap-2">
+                                      <DetailIcon className={cn('w-3 h-3 mt-0.5 flex-shrink-0', detailColor)} />
+                                      <div className="flex-1 min-w-0">
+                                        <span className="text-xs text-slate-400">{detail.label}: </span>
+                                        <span
+                                          className={cn(
+                                            'text-xs text-slate-200 break-words',
+                                            detail.type === 'query' && 'font-mono bg-slate-800/50 px-1 py-0.5 rounded',
+                                          )}
+                                        >
+                                          {detail.value.length > 150
+                                            ? `${detail.value.substring(0, 150)}...`
+                                            : detail.value}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* 상세 정보가 없고 output만 있는 경우 fallback */}
+                            {(!step.details || step.details.length === 0) && step.output && (
+                              <p className="text-xs text-slate-400 whitespace-pre-wrap break-words">
+                                {step.output.length > 200
+                                  ? `${step.output.substring(0, 200)}...`
+                                  : step.output}
+                              </p>
+                            )}
                           </div>
                         )}
                       </button>

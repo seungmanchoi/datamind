@@ -182,6 +182,14 @@ export interface FollowUpSection {
 
 export type WorkflowStepStatus = 'pending' | 'running' | 'completed' | 'error';
 
+export type WorkflowStepDetailType = 'query' | 'result' | 'insight' | 'chart' | 'decision' | 'question';
+
+export interface WorkflowStepDetail {
+  type: WorkflowStepDetailType;
+  label: string;
+  value: string;
+}
+
 export interface WorkflowStep {
   id: string;
   agent: string;
@@ -193,6 +201,10 @@ export interface WorkflowStep {
   input?: string;
   output?: string;
   error?: string;
+  // 에이전트가 수행한 작업에 대한 한줄 요약
+  summary?: string;
+  // 상세 작업 내용
+  details?: WorkflowStepDetail[];
 }
 
 export interface QueryHistoryItem {
