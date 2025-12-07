@@ -3,6 +3,7 @@ import { createSupervisor } from '@langchain/langgraph-supervisor';
 import { DataSource } from 'typeorm';
 
 import { SearchService } from '@/modules/search/search.service';
+import { RagService } from '@/rag/rag.service';
 
 import { createChartAdvisorAgent } from './chart-advisor.agent';
 import { createFollowupAgent } from './followup.agent';
@@ -15,6 +16,7 @@ export interface MultiAgentWorkflowOptions {
   model: ChatBedrockConverse;
   dataSource: DataSource;
   searchService?: SearchService;
+  ragService?: RagService;
 }
 
 /**
@@ -22,10 +24,15 @@ export interface MultiAgentWorkflowOptions {
  * 5개의 전문 에이전트를 Supervisor가 조율
  */
 export function createMultiAgentWorkflow(options: MultiAgentWorkflowOptions) {
-  const { model, dataSource, searchService } = options;
+  const { model, dataSource, searchService, ragService } = options;
 
   // 전문 에이전트들 생성 (sql_expert를 먼저 배치하여 우선순위 부여)
-  const sqlExpert = createSqlExpertAgent(model, dataSource);
+  // SQL Expert는 RAG 서비스를 통해 유사 쿼리 예제를 참조
+  const sqlExpert = createSqlExpertAgent({
+    model,
+    dataSource,
+    ragService,
+  });
   const searchExpert = createSearchExpertAgent(model, searchService);
   const insightAnalyst = createInsightAnalystAgent(model);
   const chartAdvisor = createChartAdvisorAgent(model);

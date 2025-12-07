@@ -17,6 +17,10 @@ import {
   WorkflowStepDetail,
   generateRequestId,
 } from '@/dto/response/multi-agent-response.dto';
+import { SearchService } from '@/modules/search/search.service';
+import { RagService } from '@/rag/rag.service';
+
+import { createMultiAgentWorkflow } from './multi-agent.workflow';
 
 // 에이전트 표시 이름 매핑
 const AGENT_DISPLAY_NAMES: Record<string, string> = {
@@ -27,9 +31,6 @@ const AGENT_DISPLAY_NAMES: Record<string, string> = {
   chart_advisor: '차트 어드바이저',
   followup_agent: '후속 질문 생성',
 };
-import { SearchService } from '@/modules/search/search.service';
-
-import { createMultiAgentWorkflow } from './multi-agent.workflow';
 
 /**
  * 재시도 가능한 Bedrock 에러인지 확인
@@ -195,14 +196,19 @@ export class MultiAgentService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     @Optional() private readonly searchService?: SearchService,
+    @Optional() private readonly ragService?: RagService,
   ) {
     this.chatModel = createBedrockChatModel();
     this.workflow = createMultiAgentWorkflow({
       model: this.chatModel,
       dataSource,
       searchService,
+      ragService,
     });
     this.logger.log('MultiAgentService initialized with Supervisor workflow (5 agents)');
+    if (ragService) {
+      this.logger.log('RAG 서비스 연동 활성화 - SQL Expert가 유사 쿼리 예제를 참조합니다');
+    }
   }
 
   /**
@@ -221,7 +227,8 @@ export class MultiAgentService {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (isRetryableError(lastError) && attempt < maxRetries) {
-          const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // 1s, 2s, 4s... max 10s
+          // Rate Limiting 대응: 더 긴 백오프 시간 적용 (5s, 15s, 30s)
+          const backoffMs = Math.min(5000 * Math.pow(3, attempt - 1), 30000); // 5s, 15s, 30s
           this.logger.warn(
             `[${requestId}] ⚠️ 재시도 가능한 오류 발생 (시도 ${attempt}/${maxRetries}), ${backoffMs}ms 후 재시도...`,
           );
@@ -263,11 +270,7 @@ export class MultiAgentService {
   /**
    * Multi-Agent 워크플로우 내부 실행
    */
-  private async executeQueryInternal(
-    query: string,
-    requestId: string,
-    attempt: number,
-  ): Promise<MultiAgentResponse> {
+  private async executeQueryInternal(query: string, requestId: string, attempt: number): Promise<MultiAgentResponse> {
     const startTime = Date.now();
 
     if (attempt === 1) {
@@ -290,18 +293,18 @@ export class MultiAgentService {
 
     try {
       const stream = await this.workflow.stream(
-      { messages: [new HumanMessage(query)] },
-      { recursionLimit: 50 }, // ReAct 에이전트 도구 호출을 위해 충분한 한도 설정
-    );
+        { messages: [new HumanMessage(query)] },
+        { recursionLimit: 50 }, // ReAct 에이전트 도구 호출을 위해 충분한 한도 설정
+      );
 
-    let finalResult: { messages: (HumanMessage | AIMessage)[] } = { messages: [] };
+      let finalResult: { messages: (HumanMessage | AIMessage)[] } = { messages: [] };
 
-    for await (const chunk of stream) {
-      stepCount++;
-      const elapsed = Date.now() - startTime;
+      for await (const chunk of stream) {
+        stepCount++;
+        const elapsed = Date.now() - startTime;
 
-      // 청크 정보 로깅
-      this.logger.log(`\n[${requestId}] 📍 Step ${stepCount} (${elapsed}ms)`);
+        // 청크 정보 로깅
+        this.logger.log(`\n[${requestId}] 📍 Step ${stepCount} (${elapsed}ms)`);
 
         // 청크 키 확인 (어떤 노드가 실행되었는지)
         const chunkKeys = Object.keys(chunk);
@@ -396,6 +399,8 @@ export class MultiAgentService {
                   // ToolMessage에서 실행 결과 추출하여 queryHistory 업데이트
                   const msgContent = typeof msg.content === 'string' ? msg.content : '';
                   allContent += msgContent + '\n';
+
+                  // 성공한 쿼리 결과 처리
                   if (msgContent.includes('"success":true') && msgContent.includes('"data":')) {
                     try {
                       const parsed = JSON.parse(msgContent);
@@ -405,6 +410,21 @@ export class MultiAgentService {
                         lastQuery.success = parsed.success;
                         lastQuery.rowCount = parsed.rowCount || 0;
                         lastQuery.executionTime = parsed.executionTime || 0;
+                      }
+                    } catch {
+                      // JSON 파싱 실패
+                    }
+                  }
+
+                  // 실패한 쿼리 결과 처리 (에러 메시지 캡처)
+                  if (msgContent.includes('"error":true')) {
+                    try {
+                      const parsed = JSON.parse(msgContent);
+                      if (queryHistory.length > 0) {
+                        const lastQuery = queryHistory[queryHistory.length - 1];
+                        lastQuery.success = false;
+                        lastQuery.error = parsed.message || '알 수 없는 SQL 오류';
+                        this.logger.warn(`[${requestId}]   ⚠️ SQL 실행 실패: ${lastQuery.error}`);
                       }
                     } catch {
                       // JSON 파싱 실패

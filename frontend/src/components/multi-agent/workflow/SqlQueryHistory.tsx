@@ -144,6 +144,11 @@ export default function SqlQueryHistory({ queries }: Props) {
                       <div className="flex items-center gap-2">
                         <Code2 className="w-4 h-4 text-blue-400" />
                         <span className="font-medium text-white">Query #{index + 1}</span>
+                        {!item.success && item.error && (
+                          <span className="px-2 py-0.5 bg-rose-500/20 text-rose-400 text-xs rounded-full">
+                            실패
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-4 text-xs text-slate-400 mt-1">
                         <span className="flex items-center gap-1">
@@ -155,6 +160,12 @@ export default function SqlQueryHistory({ queries }: Props) {
                           {item.rowCount}행
                         </span>
                       </div>
+                      {/* 실패 시 에러 미리보기 (펼치지 않아도 보임) */}
+                      {!item.success && item.error && !isQueryExpanded && (
+                        <p className="text-xs text-rose-400/80 mt-1 truncate max-w-md">
+                          {item.error}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -193,7 +204,15 @@ export default function SqlQueryHistory({ queries }: Props) {
                     </div>
                     {item.error && (
                       <div className="mt-3 p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg">
-                        <p className="text-sm text-rose-400">{item.error}</p>
+                        <div className="flex items-start gap-2">
+                          <XCircle className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-rose-400 mb-1">SQL 실행 오류</p>
+                            <p className="text-sm text-rose-300/80 whitespace-pre-wrap break-words">
+                              {item.error}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
