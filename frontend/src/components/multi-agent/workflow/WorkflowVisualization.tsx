@@ -1,25 +1,26 @@
-import { useState } from 'react';
 import {
-  GitBranch,
-  Play,
+  ArrowRight,
+  BarChart3,
+  Bot,
   CheckCircle2,
-  XCircle,
-  Clock,
   ChevronDown,
   ChevronUp,
+  Clock,
+  Code,
   Cpu,
   Database,
-  Search,
-  BarChart3,
-  Sparkles,
-  MessageSquare,
-  Bot,
-  Code,
   FileText,
-  Lightbulb,
-  ArrowRight,
+  GitBranch,
   HelpCircle,
+  Lightbulb,
+  MessageSquare,
+  Play,
+  Search,
+  Sparkles,
+  XCircle,
 } from 'lucide-react';
+import { useState } from 'react';
+
 import type { WorkflowStep, WorkflowStepDetailType } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +45,21 @@ const statusConfig = {
   completed: { icon: CheckCircle2, color: 'text-emerald-400', label: '완료' },
   error: { icon: XCircle, color: 'text-rose-400', label: '오류' },
 };
+
+/**
+ * 밀리초를 사람이 읽기 쉬운 형태로 변환
+ */
+function formatDuration(ms: number): string {
+  if (ms < 1000) {
+    return `${ms}ms`;
+  } else if (ms < 60000) {
+    return `${(ms / 1000).toFixed(1)}s`;
+  } else {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = ((ms % 60000) / 1000).toFixed(0);
+    return `${minutes}m ${seconds}s`;
+  }
+}
 
 // 상세 정보 타입별 아이콘 및 스타일
 const detailTypeConfig: Record<WorkflowStepDetailType, { icon: React.ElementType; color: string }> = {
@@ -119,21 +135,16 @@ export default function WorkflowVisualization({ steps, totalDuration }: Props) {
                     key={step.id}
                     className={cn(
                       'relative flex items-center gap-4',
-                      index % 2 === 0 ? 'flex-row' : 'flex-row-reverse'
+                      index % 2 === 0 ? 'flex-row' : 'flex-row-reverse',
                     )}
                   >
                     {/* 왼쪽/오른쪽 카드 */}
-                    <div
-                      className={cn(
-                        'flex-1 max-w-[45%]',
-                        index % 2 === 0 ? 'text-right pr-4' : 'text-left pl-4'
-                      )}
-                    >
+                    <div className={cn('flex-1 max-w-[45%]', index % 2 === 0 ? 'text-right pr-4' : 'text-left pl-4')}>
                       <button
                         onClick={() => setSelectedStep(isSelected ? null : step.id)}
                         className={cn(
                           'inline-block glass rounded-xl p-4 transition-all hover:scale-[1.02] cursor-pointer text-left w-full',
-                          isSelected && 'ring-2 ring-primary/50'
+                          isSelected && 'ring-2 ring-primary/50',
                         )}
                       >
                         <div className="flex items-center gap-3 mb-2">
@@ -141,23 +152,37 @@ export default function WorkflowVisualization({ steps, totalDuration }: Props) {
                             <Icon className={cn('w-4 h-4', config.color)} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-white truncate">
-                              {step.agentDisplayName}
-                            </h4>
+                            <h4 className="font-medium text-white truncate">{step.agentDisplayName}</h4>
                           </div>
                           <div className={cn('flex items-center gap-1', status.color)}>
                             <StatusIcon className="w-4 h-4" />
                           </div>
                         </div>
                         {/* 요약 (항상 표시) */}
-                        {step.summary && (
-                          <p className="text-xs text-slate-300 mt-1">{step.summary}</p>
-                        )}
+                        {step.summary && <p className="text-xs text-slate-300 mt-1">{step.summary}</p>}
 
-                        {step.duration !== undefined && (
-                          <div className="flex items-center gap-2 text-xs text-slate-400 mt-2">
-                            <Clock className="w-3 h-3" />
-                            <span>{step.duration}ms</span>
+                        {step.duration !== undefined && step.duration > 0 && (
+                          <div className="mt-2 space-y-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-1 text-slate-400">
+                                <Clock className="w-3 h-3" />
+                                <span>{formatDuration(step.duration)}</span>
+                              </div>
+                              {totalDuration > 0 && (
+                                <span className="text-slate-500">
+                                  {((step.duration / totalDuration) * 100).toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
+                            {/* Duration Progress Bar */}
+                            {totalDuration > 0 && (
+                              <div className="w-full h-1 bg-slate-700/50 rounded-full overflow-hidden">
+                                <div
+                                  className={cn('h-full rounded-full transition-all', config.bgColor.replace('/20', ''))}
+                                  style={{ width: `${Math.min((step.duration / totalDuration) * 100, 100)}%` }}
+                                />
+                              </div>
+                            )}
                           </div>
                         )}
 
@@ -197,9 +222,7 @@ export default function WorkflowVisualization({ steps, totalDuration }: Props) {
                             {/* 상세 정보가 없고 output만 있는 경우 fallback */}
                             {(!step.details || step.details.length === 0) && step.output && (
                               <p className="text-xs text-slate-400 whitespace-pre-wrap break-words">
-                                {step.output.length > 200
-                                  ? `${step.output.substring(0, 200)}...`
-                                  : step.output}
+                                {step.output.length > 200 ? `${step.output.substring(0, 200)}...` : step.output}
                               </p>
                             )}
                           </div>
@@ -212,7 +235,7 @@ export default function WorkflowVisualization({ steps, totalDuration }: Props) {
                       <div
                         className={cn(
                           'w-10 h-10 rounded-full flex items-center justify-center border-2 border-white/20',
-                          config.bgColor
+                          config.bgColor,
                         )}
                       >
                         <span className="text-sm font-bold text-white">{index + 1}</span>
@@ -227,9 +250,51 @@ export default function WorkflowVisualization({ steps, totalDuration }: Props) {
             </div>
           </div>
 
-          {/* 하단 요약 */}
-          <div className="mt-6 pt-4 border-t border-white/10">
-            <div className="flex flex-wrap gap-3">
+          {/* 하단 시간 분석 */}
+          <div className="mt-6 pt-4 border-t border-white/10 space-y-4">
+            {/* 에이전트별 시간 분석 바 차트 */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider">에이전트별 소요 시간</h4>
+              <div className="space-y-2">
+                {uniqueAgents.map((step) => {
+                  const config = agentConfig[step.agent] || {
+                    icon: Bot,
+                    color: 'text-slate-400',
+                    bgColor: 'bg-slate-500/20',
+                  };
+                  const Icon = config.icon;
+                  // 같은 에이전트의 모든 스텝 duration 합산
+                  const agentTotalDuration = steps
+                    .filter((s) => s.agent === step.agent)
+                    .reduce((sum, s) => sum + (s.duration || 0), 0);
+                  const percentage = totalDuration > 0 ? (agentTotalDuration / totalDuration) * 100 : 0;
+
+                  return (
+                    <div key={step.agent} className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 w-32 flex-shrink-0">
+                        <div className={cn('p-1 rounded', config.bgColor)}>
+                          <Icon className={cn('w-3 h-3', config.color)} />
+                        </div>
+                        <span className="text-xs text-slate-300 truncate">{step.agentDisplayName}</span>
+                      </div>
+                      <div className="flex-1 h-4 bg-slate-700/30 rounded-full overflow-hidden">
+                        <div
+                          className={cn('h-full rounded-full transition-all duration-500', config.bgColor.replace('/20', '/60'))}
+                          style={{ width: `${Math.min(percentage, 100)}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-slate-400 w-20 text-right flex-shrink-0">
+                        {formatDuration(agentTotalDuration)}
+                        <span className="text-slate-500 ml-1">({percentage.toFixed(0)}%)</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 에이전트 배지 */}
+            <div className="flex flex-wrap gap-2">
               {uniqueAgents.map((step) => {
                 const config = agentConfig[step.agent] || {
                   icon: Bot,
@@ -244,7 +309,7 @@ export default function WorkflowVisualization({ steps, totalDuration }: Props) {
                     className={cn(
                       'flex items-center gap-2 px-3 py-1.5 rounded-full text-sm',
                       config.bgColor,
-                      config.color
+                      config.color,
                     )}
                   >
                     <Icon className="w-4 h-4" />

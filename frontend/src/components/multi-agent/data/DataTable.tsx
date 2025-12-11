@@ -1,6 +1,8 @@
+import { Check, ChevronDown, ChevronUp, Clock, Code, Copy, Download, Loader2, Table2 } from 'lucide-react';
 import { useState } from 'react';
-import { Table2, Clock, ChevronDown, ChevronUp, Copy, Check, Code } from 'lucide-react';
+
 import type { ColumnDefinition } from '@/lib/api';
+import { api } from '@/lib/api';
 import { cn, formatCurrency, formatNumber, translateColumnName } from '@/lib/utils';
 
 interface Props {
@@ -9,13 +11,38 @@ interface Props {
   rowCount: number;
   executionTime: number;
   query?: string;
+  title?: string;
 }
 
-export default function DataTable({ columns, rows, rowCount, executionTime, query }: Props) {
+export default function DataTable({ columns, rows, rowCount, executionTime, query, title }: Props) {
   const [showQuery, setShowQuery] = useState(false);
   const [copied, setCopied] = useState(false);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  // 엑셀 내보내기 가능 여부 (데이터가 있으면 가능)
+  const canExport = rows.length > 0 && columns.length > 0;
+
+  // 엑셀 다운로드 핸들러
+  const handleExportExcel = async () => {
+    if (!canExport || isExporting) return;
+
+    setIsExporting(true);
+    setExportError(null);
+
+    try {
+      const exportTitle = title || '데이터 결과';
+      await api.exportToExcel(exportTitle, columns, rows, query);
+    } catch (error) {
+      console.error('Excel export failed:', error);
+      setExportError('엑셀 다운로드에 실패했습니다.');
+      setTimeout(() => setExportError(null), 3000);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleCopyQuery = async () => {
     if (query) {
@@ -90,17 +117,38 @@ export default function DataTable({ columns, rows, rowCount, executionTime, quer
             </div>
           </div>
 
-          {/* SQL 쿼리 토글 */}
-          {query && (
-            <button
-              onClick={() => setShowQuery(!showQuery)}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10
-                       text-slate-400 hover:text-white rounded-lg transition-colors text-sm"
-            >
-              <Code className="w-4 h-4" />
-              SQL 쿼리 {showQuery ? '숨기기' : '보기'}
-            </button>
-          )}
+          {/* 버튼 그룹 */}
+          <div className="flex items-center gap-2">
+            {/* 엑셀 다운로드 버튼 */}
+            {canExport && (
+              <button
+                onClick={handleExportExcel}
+                disabled={isExporting}
+                className={cn(
+                  'flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm',
+                  isExporting
+                    ? 'bg-emerald-500/20 text-emerald-400 cursor-not-allowed'
+                    : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300',
+                )}
+                title="엑셀로 다운로드"
+              >
+                {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                {isExporting ? '다운로드 중...' : '엑셀 다운로드'}
+              </button>
+            )}
+
+            {/* SQL 쿼리 토글 */}
+            {query && (
+              <button
+                onClick={() => setShowQuery(!showQuery)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10
+                         text-slate-400 hover:text-white rounded-lg transition-colors text-sm"
+              >
+                <Code className="w-4 h-4" />
+                SQL 쿼리 {showQuery ? '숨기기' : '보기'}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* SQL 쿼리 표시 */}
@@ -115,12 +163,15 @@ export default function DataTable({ columns, rows, rowCount, executionTime, quer
                        rounded-lg transition-colors"
               title="복사"
             >
-              {copied ? (
-                <Check className="w-4 h-4 text-emerald-400" />
-              ) : (
-                <Copy className="w-4 h-4 text-slate-400" />
-              )}
+              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-slate-400" />}
             </button>
+          </div>
+        )}
+
+        {/* 에러 메시지 */}
+        {exportError && (
+          <div className="mt-4 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <p className="text-sm text-red-400">{exportError}</p>
           </div>
         )}
       </div>
@@ -136,19 +187,18 @@ export default function DataTable({ columns, rows, rowCount, executionTime, quer
                   onClick={() => column.sortable !== false && handleSort(column.name)}
                   className={cn(
                     'px-4 py-3 text-left text-sm font-semibold text-slate-300',
-                    column.sortable !== false && 'cursor-pointer hover:bg-white/5'
+                    column.sortable !== false && 'cursor-pointer hover:bg-white/5',
                   )}
                   style={{ width: column.width }}
                 >
                   <div className="flex items-center gap-2">
                     <span>{translateColumnName(column.label || column.name)}</span>
-                    {sortColumn === column.name && (
-                      sortDirection === 'asc' ? (
+                    {sortColumn === column.name &&
+                      (sortDirection === 'asc' ? (
                         <ChevronUp className="w-4 h-4 text-primary" />
                       ) : (
                         <ChevronDown className="w-4 h-4 text-primary" />
-                      )
-                    )}
+                      ))}
                   </div>
                 </th>
               ))}
@@ -156,10 +206,7 @@ export default function DataTable({ columns, rows, rowCount, executionTime, quer
           </thead>
           <tbody>
             {sortedRows.map((row, rowIndex) => (
-              <tr
-                key={rowIndex}
-                className="border-t border-white/5 hover:bg-white/5 transition-colors"
-              >
+              <tr key={rowIndex} className="border-t border-white/5 hover:bg-white/5 transition-colors">
                 {columns.map((column) => (
                   <td
                     key={column.name}
@@ -167,7 +214,7 @@ export default function DataTable({ columns, rows, rowCount, executionTime, quer
                       'px-4 py-3 text-sm',
                       column.type === 'number' || column.type === 'currency' || column.type === 'percentage'
                         ? 'text-right text-slate-200'
-                        : 'text-slate-300'
+                        : 'text-slate-300',
                     )}
                   >
                     {formatValue(row[column.name], column)}
@@ -178,9 +225,7 @@ export default function DataTable({ columns, rows, rowCount, executionTime, quer
           </tbody>
         </table>
 
-        {sortedRows.length === 0 && (
-          <div className="py-12 text-center text-slate-400">데이터가 없습니다.</div>
-        )}
+        {sortedRows.length === 0 && <div className="py-12 text-center text-slate-400">데이터가 없습니다.</div>}
       </div>
     </div>
   );

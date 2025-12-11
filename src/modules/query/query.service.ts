@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { getRelevantExamples } from '@/agents/config/fewshot-examples';
 import { BedrockService } from '@/common/bedrock.service';
+import { ClarificationSection, QueryAnalysisResult } from '@/dto/common';
 import { QueryRepository } from '@/modules/query/query.repository';
 import { buildTextToSQLPrompt } from '@/prompts/text-to-sql.prompt';
 import { RagService, SqlExample } from '@/rag/rag.service';
@@ -34,16 +35,8 @@ export interface EnhancedQueryResult {
     reason: string;
   };
 
-  // Phase 7: 추가 질문 (선택적)
-  clarifyingQuestions?: {
-    reason: string;
-    questions: Array<{
-      type: 'period' | 'limit' | 'filter' | 'grouping' | 'category';
-      question: string;
-      options: string[];
-      default: string;
-    }>;
-  };
+  // Phase 7: 추가 질문 (선택적) - 공통 타입 사용
+  clarifyingQuestions?: ClarificationSection;
 }
 
 /**
@@ -71,16 +64,7 @@ export class QueryService {
    * @param userQuery 사용자 질문
    * @returns 추가 질문이 필요하면 질문 목록, 아니면 null
    */
-  async analyzeQuery(userQuery: string): Promise<{
-    needsClarification: boolean;
-    reason?: string;
-    questions?: Array<{
-      type: 'period' | 'limit' | 'filter' | 'grouping' | 'category';
-      question: string;
-      options: string[];
-      default: string;
-    }>;
-  } | null> {
+  async analyzeQuery(userQuery: string): Promise<QueryAnalysisResult | null> {
     this.logger.log('Step 1: Analyzing user query');
 
     try {
@@ -251,11 +235,15 @@ ${example.description ? `Note: ${example.description}` : ''}`,
       }
     }
 
-    // SELECT 쿼리만 허용
-    if (!sql.trim().toUpperCase().startsWith('SELECT')) {
+    // SELECT 또는 WITH...SELECT 쿼리만 허용
+    const upperSql = sql.trim().toUpperCase();
+    const isSelectQuery = upperSql.startsWith('SELECT');
+    const isWithSelectQuery = upperSql.startsWith('WITH') && upperSql.includes('SELECT');
+
+    if (!isSelectQuery && !isWithSelectQuery) {
       return {
         isValid: false,
-        error: 'Only SELECT queries are allowed',
+        error: 'Only SELECT queries are allowed (WITH...SELECT CTE is also allowed)',
       };
     }
 
@@ -319,8 +307,9 @@ ${example.description ? `Note: ${example.description}` : ''}`,
           reason: '추가 정보가 필요합니다.',
         },
         clarifyingQuestions: {
-          reason: clarificationResult.reason!,
-          questions: clarificationResult.questions!,
+          needsClarification: true,
+          reason: clarificationResult.reason,
+          questions: clarificationResult.questions,
         },
       };
     }

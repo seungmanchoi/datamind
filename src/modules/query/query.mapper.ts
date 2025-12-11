@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
+import { ClarificationSection } from '@/dto/common';
 import { ClarifyingQuestionItemDto, ClarifyingQuestionsDto } from '@/modules/query/dto/clarifying-question.dto';
 import { InsightsDto } from '@/modules/query/dto/insights.dto';
 import { QueryResponseDto } from '@/modules/query/dto/query-response.dto';
@@ -71,19 +72,12 @@ export class QueryMapper {
 
   /**
    * 추가 질문 정보 매핑
+   * 공통 ClarificationSection 타입 사용
    */
-  private mapClarifyingQuestions(questions: {
-    reason: string;
-    questions: Array<{
-      type: 'period' | 'limit' | 'filter' | 'grouping' | 'category';
-      question: string;
-      options: string[];
-      default: string;
-    }>;
-  }): ClarifyingQuestionsDto {
+  private mapClarifyingQuestions(clarification: ClarificationSection): ClarifyingQuestionsDto {
     const clarifying = new ClarifyingQuestionsDto();
-    clarifying.reason = questions.reason;
-    clarifying.questions = questions.questions.map((q) => {
+    clarifying.reason = clarification.reason || '';
+    clarifying.questions = (clarification.questions || []).map((q) => {
       const item = new ClarifyingQuestionItemDto();
       item.type = q.type;
       item.question = q.question;

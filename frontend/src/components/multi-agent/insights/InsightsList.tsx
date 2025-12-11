@@ -1,7 +1,9 @@
-import { Sparkles, Shield } from 'lucide-react';
+import { Shield, Sparkles } from 'lucide-react';
+
 import type { InsightItem } from '@/lib/api';
-import InsightCard from './InsightCard';
 import { cn } from '@/lib/utils';
+
+import InsightCard from './InsightCard';
 
 interface Props {
   summary: string;
@@ -11,11 +13,7 @@ interface Props {
 
 export default function InsightsList({ summary, items, overallConfidence }: Props) {
   const confidenceColor =
-    overallConfidence >= 0.8
-      ? 'text-emerald-400'
-      : overallConfidence >= 0.6
-        ? 'text-amber-400'
-        : 'text-rose-400';
+    overallConfidence >= 0.8 ? 'text-emerald-400' : overallConfidence >= 0.6 ? 'text-amber-400' : 'text-rose-400';
 
   // 중요도별 정렬
   const sortedItems = [...items].sort((a, b) => {
@@ -36,9 +34,7 @@ export default function InsightsList({ summary, items, overallConfidence }: Prop
           </div>
           <div className={cn('flex items-center gap-2', confidenceColor)}>
             <Shield className="w-4 h-4" />
-            <span className="text-sm font-medium">
-              전체 신뢰도 {Math.round(overallConfidence * 100)}%
-            </span>
+            <span className="text-sm font-medium">전체 신뢰도 {Math.round(overallConfidence * 100)}%</span>
           </div>
         </div>
       </div>

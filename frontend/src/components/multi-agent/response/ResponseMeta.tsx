@@ -1,4 +1,5 @@
-import { Clock, Users, Shield, Zap } from 'lucide-react';
+import { Clock, Shield, Users, Zap } from 'lucide-react';
+
 import type { ResponseMeta as ResponseMetaType } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -25,11 +26,7 @@ const responseTypeLabels: Record<string, string> = {
 
 export default function ResponseMeta({ meta }: Props) {
   const confidenceColor =
-    meta.confidence >= 0.8
-      ? 'text-emerald-400'
-      : meta.confidence >= 0.6
-        ? 'text-amber-400'
-        : 'text-rose-400';
+    meta.confidence >= 0.8 ? 'text-emerald-400' : meta.confidence >= 0.6 ? 'text-amber-400' : 'text-rose-400';
 
   return (
     <div className="glass rounded-xl p-4 border border-white/5">
@@ -58,10 +55,7 @@ export default function ResponseMeta({ meta }: Props) {
             <Users className="w-4 h-4" />
             <div className="flex flex-wrap gap-1.5">
               {meta.agentsUsed.map((agent) => (
-                <span
-                  key={agent}
-                  className="px-2 py-0.5 bg-primary/20 text-primary rounded text-xs font-medium"
-                >
+                <span key={agent} className="px-2 py-0.5 bg-primary/20 text-primary rounded text-xs font-medium">
                   {agentDisplayNames[agent] || agent}
                 </span>
               ))}
@@ -70,9 +64,7 @@ export default function ResponseMeta({ meta }: Props) {
         )}
 
         {/* 타임스탬프 */}
-        <div className="ml-auto text-xs text-slate-500">
-          {new Date(meta.timestamp).toLocaleString('ko-KR')}
-        </div>
+        <div className="ml-auto text-xs text-slate-500">{new Date(meta.timestamp).toLocaleString('ko-KR')}</div>
       </div>
     </div>
   );

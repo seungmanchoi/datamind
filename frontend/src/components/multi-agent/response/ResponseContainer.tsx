@@ -1,12 +1,13 @@
 import type { MultiAgentResponse } from '@/lib/api';
-import ResponseMeta from './ResponseMeta';
-import ErrorDisplay from './ErrorDisplay';
-import InsightsList from '../insights/InsightsList';
-import ChartComponent from '../visualizations/ChartComponent';
+
 import DataTable from '../data/DataTable';
 import FollowUpQuestions from '../followup/FollowUpQuestions';
-import WorkflowVisualization from '../workflow/WorkflowVisualization';
+import InsightsList from '../insights/InsightsList';
+import ChartComponent from '../visualizations/ChartComponent';
 import SqlQueryHistory from '../workflow/SqlQueryHistory';
+import WorkflowVisualization from '../workflow/WorkflowVisualization';
+import ErrorDisplay from './ErrorDisplay';
+import ResponseMeta from './ResponseMeta';
 
 interface Props {
   response: MultiAgentResponse;
@@ -38,9 +39,7 @@ export default function ResponseContainer({ response, onFollowUpClick, onRetry }
       )}
 
       {/* SQL 쿼리 히스토리 */}
-      {workflow && workflow.queryHistory.length > 0 && (
-        <SqlQueryHistory queries={workflow.queryHistory} />
-      )}
+      {workflow && workflow.queryHistory.length > 0 && <SqlQueryHistory queries={workflow.queryHistory} />}
 
       {/* 인사이트 섹션 */}
       {insights && (
@@ -68,6 +67,7 @@ export default function ResponseContainer({ response, onFollowUpClick, onRetry }
           rowCount={data.sql.rowCount}
           executionTime={data.sql.executionTime}
           query={data.sql.query}
+          title={meta.query}
         />
       )}
 
@@ -80,19 +80,12 @@ export default function ResponseContainer({ response, onFollowUpClick, onRetry }
           </p>
           <div className="space-y-2">
             {data.search.results.map((item) => (
-              <div
-                key={item.id}
-                className="bg-slate-900/50 rounded-lg p-4 border border-white/5"
-              >
+              <div key={item.id} className="bg-slate-900/50 rounded-lg p-4 border border-white/5">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-white">{item.name}</span>
-                  <span className="text-sm text-primary">
-                    유사도 {Math.round(item.score * 100)}%
-                  </span>
+                  <span className="text-sm text-primary">유사도 {Math.round(item.score * 100)}%</span>
                 </div>
-                {item.description && (
-                  <p className="text-sm text-slate-400 mt-1">{item.description}</p>
-                )}
+                {item.description && <p className="text-sm text-slate-400 mt-1">{item.description}</p>}
               </div>
             ))}
           </div>

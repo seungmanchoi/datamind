@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Search, Loader2, Sparkles } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
-import { api, type SemanticSearchResponse } from '@/lib/api';
+import { Loader2, Search, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+
+import { type SemanticSearchResponse, api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 type SearchType = 'semantic' | 'hybrid';
@@ -14,9 +15,7 @@ export default function SearchPage() {
 
   const searchMutation = useMutation({
     mutationFn: ({ query, type, topK }: { query: string; type: SearchType; topK: number }) => {
-      return type === 'semantic'
-        ? api.semanticSearch(query, topK)
-        : api.hybridSearch(query, topK);
+      return type === 'semantic' ? api.semanticSearch(query, topK) : api.hybridSearch(query, topK);
     },
     onSuccess: (data) => {
       setResult(data);
@@ -43,9 +42,7 @@ export default function SearchPage() {
           </div>
           시맨틱 검색
         </h2>
-        <p className="text-slate-400 leading-relaxed">
-          의미 기반으로 상품, 옵션, 매장을 검색하세요.
-        </p>
+        <p className="text-slate-400 leading-relaxed">의미 기반으로 상품, 옵션, 매장을 검색하세요.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="glass rounded-2xl shadow-lg p-6 space-y-4">
@@ -107,7 +104,7 @@ export default function SearchPage() {
             className={cn(
               'px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-medium',
               'hover:shadow-lg hover:shadow-purple-500/30 transition-all flex items-center gap-2',
-              'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none'
+              'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none',
             )}
           >
             {searchMutation.isPending ? (
@@ -148,9 +145,7 @@ export default function SearchPage() {
 
           {result.results && result.results.length > 0 && (
             <div>
-              <h3 className="text-lg font-bold text-white mb-4">
-                검색 결과 ({result.results.length}건)
-              </h3>
+              <h3 className="text-lg font-bold text-white mb-4">검색 결과 ({result.results.length}건)</h3>
               <div className="space-y-3">
                 {result.results.map((item, idx) => (
                   <div

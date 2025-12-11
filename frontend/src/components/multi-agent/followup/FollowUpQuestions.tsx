@@ -1,4 +1,5 @@
-import { MessageCircle, Search, TrendingUp, Layers, Zap } from 'lucide-react';
+import { Layers, MessageCircle, Search, TrendingUp, Zap } from 'lucide-react';
+
 import type { FollowUpQuestion } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -70,17 +71,13 @@ export default function FollowUpQuestions({ questions, onQuestionClick }: Props)
                   'flex items-center gap-2 px-4 py-2.5 rounded-xl',
                   'border border-white/10 transition-all duration-200',
                   'hover:border-white/20 hover:shadow-lg',
-                  config.bgColor
+                  config.bgColor,
                 )}
               >
                 <Icon className={cn('w-4 h-4', config.color)} />
                 <span className="text-slate-200 text-sm">{question.text}</span>
                 <span
-                  className={cn(
-                    'text-xs px-1.5 py-0.5 rounded',
-                    config.bgColor.replace('hover:', ''),
-                    config.color
-                  )}
+                  className={cn('text-xs px-1.5 py-0.5 rounded', config.bgColor.replace('hover:', ''), config.color)}
                 >
                   {config.label}
                 </span>

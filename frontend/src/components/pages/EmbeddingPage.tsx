@@ -1,20 +1,21 @@
-import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  FileCode,
-  Loader2,
-  Trash2,
-  RefreshCw,
-  Plus,
   ChevronDown,
-  ChevronUp,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  FileCode,
+  Loader2,
   Pencil,
+  Plus,
+  RefreshCw,
   Save,
+  Trash2,
   X,
 } from 'lucide-react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, type FewShotExample, type EmbedExampleResponse, type ExampleItem } from '@/lib/api';
+import { useState } from 'react';
+
+import { type EmbedExampleResponse, type ExampleItem, type FewShotExample, api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 10;
@@ -92,8 +93,7 @@ export default function EmbeddingPage() {
 
   // 예제 수정 Mutation
   const updateExampleMutation = useMutation({
-    mutationFn: ({ id, example }: { id: string; example: FewShotExample }) =>
-      api.updateExample(id, example),
+    mutationFn: ({ id, example }: { id: string; example: FewShotExample }) => api.updateExample(id, example),
     onSuccess: (data) => {
       setEditingId(null);
       setEditForm({ description: '', sql: '' });
@@ -189,8 +189,8 @@ export default function EmbeddingPage() {
               AI 학습 관리
             </h2>
             <p className="text-slate-400 leading-relaxed">
-              AI가 질문에 더 정확하게 답변할 수 있도록 학습 예시를 등록합니다. 유사한 질문이 들어오면
-              등록된 예시를 참고하여 더 나은 결과를 제공합니다.
+              AI가 질문에 더 정확하게 답변할 수 있도록 학습 예시를 등록합니다. 유사한 질문이 들어오면 등록된 예시를
+              참고하여 더 나은 결과를 제공합니다.
             </p>
           </div>
           <div className="flex gap-3">
@@ -274,11 +274,7 @@ export default function EmbeddingPage() {
           <div className="flex gap-3">
             <button
               type="submit"
-              disabled={
-                isLoading ||
-                !example.description.trim() ||
-                !example.sql.trim()
-              }
+              disabled={isLoading || !example.description.trim() || !example.sql.trim()}
               className={cn(
                 'px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl font-medium',
                 'hover:shadow-lg hover:shadow-cyan-500/30 transition-all flex items-center gap-2',
@@ -350,10 +346,7 @@ export default function EmbeddingPage() {
           <>
             <div className="space-y-3">
               {examplesData.examples.map((item: ExampleItem) => (
-                <div
-                  key={item.id}
-                  className="bg-white/5 border border-white/10 rounded-xl overflow-hidden"
-                >
+                <div key={item.id} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
                   <div
                     className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-all"
                     onClick={() => toggleExpand(item.id)}
@@ -405,23 +398,17 @@ export default function EmbeddingPage() {
                         // 수정 모드
                         <>
                           <div>
-                            <label className="text-xs text-slate-500 uppercase tracking-wider mb-1 block">
-                              설명
-                            </label>
+                            <label className="text-xs text-slate-500 uppercase tracking-wider mb-1 block">설명</label>
                             <textarea
                               value={editForm.description}
-                              onChange={(e) =>
-                                setEditForm({ ...editForm, description: e.target.value })
-                              }
+                              onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                               rows={3}
                               className="w-full px-4 py-3 bg-slate-900/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all text-white text-sm placeholder:text-slate-500 resize-none"
                               disabled={updateExampleMutation.isPending}
                             />
                           </div>
                           <div>
-                            <label className="text-xs text-slate-500 uppercase tracking-wider mb-1 block">
-                              SQL
-                            </label>
+                            <label className="text-xs text-slate-500 uppercase tracking-wider mb-1 block">SQL</label>
                             <textarea
                               value={editForm.sql}
                               onChange={(e) => setEditForm({ ...editForm, sql: e.target.value })}
@@ -434,9 +421,7 @@ export default function EmbeddingPage() {
                             <button
                               onClick={() => handleSaveEdit(item.id)}
                               disabled={
-                                updateExampleMutation.isPending ||
-                                !editForm.description.trim() ||
-                                !editForm.sql.trim()
+                                updateExampleMutation.isPending || !editForm.description.trim() || !editForm.sql.trim()
                               }
                               className={cn(
                                 'px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg font-medium text-sm',
@@ -474,25 +459,19 @@ export default function EmbeddingPage() {
                         // 보기 모드
                         <>
                           <div>
-                            <h4 className="text-xs text-slate-500 uppercase tracking-wider mb-1">
-                              설명
-                            </h4>
+                            <h4 className="text-xs text-slate-500 uppercase tracking-wider mb-1">설명</h4>
                             <p className="text-slate-300 text-sm bg-slate-900/50 p-3 rounded-lg whitespace-pre-wrap">
                               {item.description}
                             </p>
                           </div>
                           <div>
-                            <h4 className="text-xs text-slate-500 uppercase tracking-wider mb-1">
-                              SQL
-                            </h4>
+                            <h4 className="text-xs text-slate-500 uppercase tracking-wider mb-1">SQL</h4>
                             <pre className="text-slate-300 font-mono text-sm bg-slate-900/50 p-3 rounded-lg overflow-x-auto whitespace-pre-wrap">
                               {item.sql}
                             </pre>
                           </div>
                           {item.updatedAt && (
-                            <p className="text-xs text-slate-500">
-                              수정됨: {formatDate(item.updatedAt)}
-                            </p>
+                            <p className="text-xs text-slate-500">수정됨: {formatDate(item.updatedAt)}</p>
                           )}
                         </>
                       )}
@@ -522,20 +501,14 @@ export default function EmbeddingPage() {
                   {Array.from({ length: examplesData.totalPages }, (_, i) => i + 1)
                     .filter((page) => {
                       // 현재 페이지 주변 2개씩, 처음과 끝 페이지 표시
-                      return (
-                        page === 1 ||
-                        page === examplesData.totalPages ||
-                        Math.abs(page - currentPage) <= 1
-                      );
+                      return page === 1 || page === examplesData.totalPages || Math.abs(page - currentPage) <= 1;
                     })
                     .map((page, index, array) => {
                       // 생략 부분에 ... 표시
                       const showEllipsisBefore = index > 0 && page - array[index - 1] > 1;
                       return (
                         <div key={page} className="flex items-center gap-1">
-                          {showEllipsisBefore && (
-                            <span className="px-2 text-slate-500">...</span>
-                          )}
+                          {showEllipsisBefore && <span className="px-2 text-slate-500">...</span>}
                           <button
                             onClick={() => setCurrentPage(page)}
                             disabled={isLoadingExamples}

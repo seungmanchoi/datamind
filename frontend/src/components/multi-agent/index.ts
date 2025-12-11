@@ -13,3 +13,6 @@ export { DataTable } from './data';
 // Follow-up Components
 export { FollowUpQuestions, FollowUpPanel } from './followup';
 export type { ExtendedFollowUpQuestion } from './followup';
+
+// Clarification Components
+export { ClarificationModal } from './clarification';

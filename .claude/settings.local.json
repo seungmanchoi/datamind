@@ -68,7 +68,13 @@
       "Bash(src/dto/response/multi-agent-response.dto.ts )",
       "Bash(src/main.ts)",
       "Bash(git restore:*)",
-      "Bash(pnpm run format:check:*)"
+      "Bash(pnpm run format:check:*)",
+      "Bash(timeout 15 pnpm run start:dev:*)",
+      "Bash(yarn add:*)",
+      "Bash(rm:*)",
+      "Bash(yarn run lint:*)",
+      "Bash(kill:*)",
+      "Bash(timeout 20 pnpm run start:dev:*)"
     ],
     "deny": [],
     "ask": []

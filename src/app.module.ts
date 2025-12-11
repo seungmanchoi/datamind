@@ -14,6 +14,7 @@ import { OpenSearchService } from '@/common/opensearch.service';
 import { SecretsModule } from '@/common/secrets.module';
 import { SecretsService } from '@/common/secrets.service';
 import opensearchConfig from '@/config/opensearch.config';
+import { ExportModule } from '@/modules/export/export.module';
 import { IndexingModule } from '@/modules/indexing/indexing.module';
 import { QueryModule } from '@/modules/query/query.module';
 import { SearchModule } from '@/modules/search/search.module';
@@ -28,7 +29,7 @@ import { RagModule } from '@/rag/rag.module';
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', '..', 'frontend', 'dist'),
-      exclude: ['/api*', '/agent*', '/multi-agent*', '/search*', '/indexing*'],
+      exclude: ['/api*', '/agent*', '/multi-agent*', '/search*', '/indexing*', '/export*'],
     }),
     SecretsModule,
     TypeOrmModule.forRootAsync({
@@ -54,6 +55,7 @@ import { RagModule } from '@/rag/rag.module';
     MultiAgentModule,
     IndexingModule,
     SearchModule,
+    ExportModule,
     RagModule,
   ],
   controllers: [AppController],

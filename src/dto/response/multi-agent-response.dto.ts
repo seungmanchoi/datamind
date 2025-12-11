@@ -1,7 +1,12 @@
+import { ClarificationSection } from '@/dto/common';
+
 /**
  * Multi-Agent 시스템 응답 프로토콜 정의
  * 프론트엔드와의 통합 스키마
  */
+
+// 공통 Clarification 타입 re-export
+export { ClarificationSection, ClarificationQuestion, ClarificationType } from '@/dto/common';
 
 // ============================================
 // 인사이트 관련 타입
@@ -195,6 +200,15 @@ export interface WorkflowStepDetail {
   value: string;
 }
 
+/**
+ * RAG에서 검색된 Few-shot SQL 예제
+ */
+export interface FewShotExample {
+  description: string;
+  sql: string;
+  score: number;
+}
+
 export interface QueryHistoryItem {
   id: string;
   query: string;
@@ -203,6 +217,8 @@ export interface QueryHistoryItem {
   rowCount: number;
   success: boolean;
   error?: string;
+  /** RAG를 통해 검색된 few-shot SQL 예제들 */
+  fewShotExamples?: FewShotExample[];
 }
 
 export interface WorkflowSection {
@@ -250,6 +266,7 @@ export interface ErrorSection {
 
 export interface MultiAgentResponse {
   meta: ResponseMeta;
+  clarification?: ClarificationSection;
   data?: DataSection;
   insights?: InsightSection;
   visualizations?: VisualizationSection;

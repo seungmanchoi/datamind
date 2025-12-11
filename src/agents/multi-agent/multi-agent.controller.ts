@@ -1,6 +1,6 @@
 import { Body, Controller, Logger, Post } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiProperty, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 import { MultiAgentResponse } from '@/dto/response/multi-agent-response.dto';
 
@@ -17,6 +17,15 @@ class MultiAgentQueryDto {
   @IsString()
   @IsNotEmpty()
   query: string;
+
+  @ApiProperty({
+    description: '명확화 단계 건너뛰기 (사용자가 이미 답변을 제공한 경우)',
+    required: false,
+    default: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  skipClarification?: boolean;
 }
 
 /**
@@ -57,13 +66,20 @@ export class MultiAgentController {
     description: 'Multi-Agent 응답',
   })
   async executeQuery(@Body() dto: MultiAgentQueryDto): Promise<MultiAgentResponse> {
-    this.logger.log(`Multi-Agent query: ${dto.query}`);
+    this.logger.log(`Multi-Agent query: ${dto.query}, skipClarification: ${dto.skipClarification ?? false}`);
 
-    const response = await this.multiAgentService.executeQuery(dto.query);
+    const response = await this.multiAgentService.executeQuery(dto.query, dto.skipClarification ?? false);
 
-    this.logger.log(
-      `Response: ${response.meta.responseType}, agents: ${response.meta.agentsUsed.join(', ')}, time: ${response.meta.processingTime}ms`,
-    );
+    // 명확화 필요 응답인 경우 별도 로깅
+    if (response.clarification?.needsClarification) {
+      this.logger.log(
+        `Response: clarification_needed, questions: ${response.clarification.questions?.length || 0}, time: ${response.meta.processingTime}ms`,
+      );
+    } else {
+      this.logger.log(
+        `Response: ${response.meta.responseType}, agents: ${response.meta.agentsUsed.join(', ')}, time: ${response.meta.processingTime}ms`,
+      );
+    }
 
     return response;
   }

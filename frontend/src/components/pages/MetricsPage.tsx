@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { BarChart, HelpCircle, Search, Clock, Server, Info } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { BarChart, Clock, HelpCircle, Info, Search, Server } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
 import { api } from '@/lib/api';
 
 interface MetricCardProps {
@@ -28,9 +29,7 @@ function MetricCard({ icon, title, value, subtitle, color = 'blue' }: MetricCard
   return (
     <div className="glass rounded-2xl p-6 hover:bg-white/10 transition-all">
       <div className="flex items-start gap-4">
-        <div className={`bg-gradient-to-br ${colorClasses[color]} p-3 rounded-xl shadow-lg`}>
-          {icon}
-        </div>
+        <div className={`bg-gradient-to-br ${colorClasses[color]} p-3 rounded-xl shadow-lg`}>{icon}</div>
         <div className="flex-1">
           <h3 className="text-slate-400 text-sm font-medium mb-1">{title}</h3>
           <p className="text-2xl font-bold text-white">{value}</p>
@@ -55,15 +54,10 @@ export default function MetricsPage() {
   });
 
   useEffect(() => {
-    const history: HistoryItem[] = JSON.parse(
-      localStorage.getItem('query_history') || '[]'
-    );
+    const history: HistoryItem[] = JSON.parse(localStorage.getItem('query_history') || '[]');
 
     const totalQueries = history.length;
-    const totalTime = history.reduce(
-      (sum, item) => sum + (item.result?.executionTime || 0),
-      0
-    );
+    const totalTime = history.reduce((sum, item) => sum + (item.result?.executionTime || 0), 0);
     const averageTime = totalQueries > 0 ? Math.round(totalTime / totalQueries) : 0;
 
     setMetrics({
@@ -123,9 +117,7 @@ export default function MetricsPage() {
           icon={<Clock className="w-5 h-5 text-white" />}
           title="평균 응답시간"
           value={metrics.averageTime > 0 ? `${metrics.averageTime}ms` : '-'}
-          subtitle={
-            metrics.totalQueries > 0 ? `${metrics.totalQueries}건 기준` : '데이터 없음'
-          }
+          subtitle={metrics.totalQueries > 0 ? `${metrics.totalQueries}건 기준` : '데이터 없음'}
           color="emerald"
         />
 
@@ -151,15 +143,11 @@ export default function MetricsPage() {
           </div>
           <div className="flex items-center justify-between py-3 border-b border-white/10">
             <span className="text-slate-400">AI 엔진</span>
-            <span className="font-medium text-slate-200">
-              AWS Bedrock (Claude 3 Sonnet)
-            </span>
+            <span className="font-medium text-slate-200">AWS Bedrock (Claude 3 Sonnet)</span>
           </div>
           <div className="flex items-center justify-between py-3 border-b border-white/10">
             <span className="text-slate-400">벡터 DB</span>
-            <span className="font-medium text-slate-200">
-              Amazon OpenSearch Serverless
-            </span>
+            <span className="font-medium text-slate-200">Amazon OpenSearch Serverless</span>
           </div>
           <div className="flex items-center justify-between py-3 border-b border-white/10">
             <span className="text-slate-400">데이터베이스</span>
@@ -176,8 +164,8 @@ export default function MetricsPage() {
         <p className="text-sm text-blue-300 flex items-start gap-3">
           <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
           <span>
-            <strong>Note:</strong> 메트릭은 브라우저 LocalStorage 기반으로 계산됩니다. 실제
-            프로덕션 환경에서는 서버 기반 메트릭 수집을 권장합니다.
+            <strong>Note:</strong> 메트릭은 브라우저 LocalStorage 기반으로 계산됩니다. 실제 프로덕션 환경에서는 서버
+            기반 메트릭 수집을 권장합니다.
           </span>
         </p>
       </div>

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { History, Trash2, Clock, Database } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Clock, Database, History, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
 import { type QueryResult } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 interface HistoryItem {
   query: string;
@@ -65,9 +66,7 @@ export default function HistoryPage() {
               </div>
               질의 히스토리
             </h2>
-            <p className="text-slate-400 leading-relaxed">
-              과거 질의 내역을 확인하고 재사용할 수 있습니다.
-            </p>
+            <p className="text-slate-400 leading-relaxed">과거 질의 내역을 확인하고 재사용할 수 있습니다.</p>
           </div>
           {history.length > 0 && (
             <button
@@ -85,17 +84,13 @@ export default function HistoryPage() {
         <div className="glass rounded-2xl p-12 text-center">
           <History className="w-16 h-16 text-slate-600 mx-auto mb-4" />
           <p className="text-slate-400 text-lg">저장된 히스토리가 없습니다.</p>
-          <p className="text-slate-500 text-sm mt-2">
-            AI 질의 페이지에서 질의를 실행하면 자동으로 저장됩니다.
-          </p>
+          <p className="text-slate-500 text-sm mt-2">AI 질의 페이지에서 질의를 실행하면 자동으로 저장됩니다.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 히스토리 목록 */}
           <div className="space-y-3">
-            <h3 className="text-lg font-bold text-white mb-3">
-              최근 질의 ({history.length}건)
-            </h3>
+            <h3 className="text-lg font-bold text-white mb-3">최근 질의 ({history.length}건)</h3>
             <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
               {history.map((item, idx) => (
                 <div
@@ -104,15 +99,13 @@ export default function HistoryPage() {
                     'p-4 glass rounded-xl cursor-pointer transition-all',
                     selectedItem === item
                       ? 'border-2 border-emerald-500 bg-emerald-500/10'
-                      : 'border border-white/10 hover:border-emerald-500/50 hover:bg-white/5'
+                      : 'border border-white/10 hover:border-emerald-500/50 hover:bg-white/5',
                   )}
                   onClick={() => setSelectedItem(item)}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <p className="font-medium text-white line-clamp-2">
-                        {item.query}
-                      </p>
+                      <p className="font-medium text-white line-clamp-2">{item.query}</p>
                       <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
@@ -160,9 +153,7 @@ export default function HistoryPage() {
 
                 {selectedItem.result.results && selectedItem.result.results.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-bold text-white mb-2">
-                      결과 ({selectedItem.result.results.length}건)
-                    </h3>
+                    <h3 className="text-lg font-bold text-white mb-2">결과 ({selectedItem.result.results.length}건)</h3>
                     <div className="overflow-x-auto max-h-64 overflow-y-auto rounded-xl border border-white/10">
                       <table className="min-w-full divide-y divide-white/10">
                         <thead className="bg-white/5 sticky top-0">
@@ -181,10 +172,7 @@ export default function HistoryPage() {
                           {selectedItem.result.results.map((row, idx) => (
                             <tr key={idx} className="hover:bg-white/5 transition-colors">
                               {Object.values(row).map((value, cellIdx) => (
-                                <td
-                                  key={cellIdx}
-                                  className="px-4 py-3 whitespace-nowrap text-sm text-slate-300"
-                                >
+                                <td key={cellIdx} className="px-4 py-3 whitespace-nowrap text-sm text-slate-300">
                                   {String(value ?? '')}
                                 </td>
                               ))}

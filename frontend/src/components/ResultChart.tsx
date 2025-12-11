@@ -1,19 +1,20 @@
 import { useMemo } from 'react';
 import {
-  BarChart,
   Bar,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
+  BarChart,
+  CartesianGrid,
   Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
 } from 'recharts';
+
 import { type QueryResult } from '@/lib/api';
 import { formatCurrency, formatNumber, translateColumnName } from '@/lib/utils';
 
@@ -158,9 +159,7 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
 
     return (
       <div className="glass rounded-2xl p-6 shadow-lg">
-        <h4 className="text-base font-bold text-slate-200 mb-4">
-          데이터 시각화
-        </h4>
+        <h4 className="text-base font-bold text-slate-200 mb-4">데이터 시각화</h4>
         <ResponsiveContainer width="100%" height={320}>
           <PieChart>
             <Pie
@@ -168,9 +167,7 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ name, percent }) =>
-                `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`
-              }
+              label={({ name, percent }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
               outerRadius={80}
               fill="#8884d8"
               dataKey="value"
@@ -181,7 +178,11 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
             </Pie>
             <Tooltip
               formatter={pieTooltipFormatter}
-              contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
+              contentStyle={{
+                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                borderColor: 'rgba(255,255,255,0.1)',
+                color: '#fff',
+              }}
             />
           </PieChart>
         </ResponsiveContainer>
@@ -192,9 +193,7 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
   if (type === 'line') {
     return (
       <div className="glass rounded-2xl p-6 shadow-lg">
-        <h4 className="text-base font-bold text-slate-200 mb-4">
-          데이터 시각화
-        </h4>
+        <h4 className="text-base font-bold text-slate-200 mb-4">데이터 시각화</h4>
         <ResponsiveContainer width="100%" height={320}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
@@ -202,7 +201,11 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
             <YAxis tickFormatter={formatYAxisTick} stroke="#94a3b8" />
             <Tooltip
               formatter={formatTooltipValue}
-              contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
+              contentStyle={{
+                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                borderColor: 'rgba(255,255,255,0.1)',
+                color: '#fff',
+              }}
             />
             <Legend wrapperStyle={{ color: '#cbd5e1' }} formatter={formatLegendValue} />
             {dataKeys.map((key, index) => (
@@ -226,9 +229,7 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
   // Bar 차트 (기본)
   return (
     <div className="glass rounded-2xl p-6 shadow-lg">
-      <h4 className="text-base font-bold text-slate-200 mb-4">
-        데이터 시각화
-      </h4>
+      <h4 className="text-base font-bold text-slate-200 mb-4">데이터 시각화</h4>
       <ResponsiveContainer width="100%" height={320}>
         <BarChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
@@ -236,7 +237,11 @@ export default function ResultChart({ data, type = 'bar' }: ResultChartProps) {
           <YAxis tickFormatter={formatYAxisTick} stroke="#94a3b8" />
           <Tooltip
             formatter={formatTooltipValue}
-            contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
+            contentStyle={{
+              backgroundColor: 'rgba(15, 23, 42, 0.9)',
+              borderColor: 'rgba(255,255,255,0.1)',
+              color: '#fff',
+            }}
             cursor={{ fill: 'rgba(255,255,255,0.05)' }}
           />
           <Legend wrapperStyle={{ color: '#cbd5e1' }} formatter={formatLegendValue} />

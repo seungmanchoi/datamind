@@ -1,4 +1,5 @@
-import { AlertTriangle, RefreshCw, HelpCircle } from 'lucide-react';
+import { AlertTriangle, HelpCircle, RefreshCw } from 'lucide-react';
+
 import type { ErrorSection } from '@/lib/api';
 
 interface Props {
@@ -25,9 +26,7 @@ export default function ErrorDisplay({ error, onRetry }: Props) {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-rose-400">오류가 발생했습니다</h3>
-            <p className="text-sm text-rose-400/70">
-              {errorCodeLabels[error.code] || error.code}
-            </p>
+            <p className="text-sm text-rose-400/70">{errorCodeLabels[error.code] || error.code}</p>
           </div>
         </div>
       </div>

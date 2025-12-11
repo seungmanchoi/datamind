@@ -1,16 +1,19 @@
-import { useState } from 'react';
 import {
-  Database,
+  BookOpen,
+  Check,
   CheckCircle2,
-  XCircle,
-  Clock,
   ChevronDown,
   ChevronUp,
-  Copy,
-  Check,
+  Clock,
   Code2,
+  Copy,
+  Database,
   Rows3,
+  Sparkles,
+  XCircle,
 } from 'lucide-react';
+import { useState } from 'react';
+
 import type { QueryHistoryItem } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -77,10 +80,7 @@ export default function SqlQueryHistory({ queries }: Props) {
     let formatted = sql;
     keywords.forEach((keyword) => {
       const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
-      formatted = formatted.replace(
-        regex,
-        `<span class="text-blue-400 font-semibold">${keyword}</span>`
-      );
+      formatted = formatted.replace(regex, `<span class="text-blue-400 font-semibold">${keyword}</span>`);
     });
 
     return formatted;
@@ -119,7 +119,7 @@ export default function SqlQueryHistory({ queries }: Props) {
                 key={item.id}
                 className={cn(
                   'glass rounded-xl overflow-hidden border transition-all',
-                  item.success ? 'border-emerald-500/20' : 'border-rose-500/20'
+                  item.success ? 'border-emerald-500/20' : 'border-rose-500/20',
                 )}
               >
                 {/* 쿼리 헤더 */}
@@ -131,7 +131,7 @@ export default function SqlQueryHistory({ queries }: Props) {
                     <div
                       className={cn(
                         'w-8 h-8 rounded-lg flex items-center justify-center',
-                        item.success ? 'bg-emerald-500/20' : 'bg-rose-500/20'
+                        item.success ? 'bg-emerald-500/20' : 'bg-rose-500/20',
                       )}
                     >
                       {item.success ? (
@@ -141,12 +141,16 @@ export default function SqlQueryHistory({ queries }: Props) {
                       )}
                     </div>
                     <div className="text-left">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Code2 className="w-4 h-4 text-blue-400" />
                         <span className="font-medium text-white">Query #{index + 1}</span>
                         {!item.success && item.error && (
-                          <span className="px-2 py-0.5 bg-rose-500/20 text-rose-400 text-xs rounded-full">
-                            실패
+                          <span className="px-2 py-0.5 bg-rose-500/20 text-rose-400 text-xs rounded-full">실패</span>
+                        )}
+                        {item.fewShotExamples && item.fewShotExamples.length > 0 && (
+                          <span className="px-2 py-0.5 bg-violet-500/20 text-violet-400 text-xs rounded-full flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            RAG 참조
                           </span>
                         )}
                       </div>
@@ -162,9 +166,7 @@ export default function SqlQueryHistory({ queries }: Props) {
                       </div>
                       {/* 실패 시 에러 미리보기 (펼치지 않아도 보임) */}
                       {!item.success && item.error && !isQueryExpanded && (
-                        <p className="text-xs text-rose-400/80 mt-1 truncate max-w-md">
-                          {item.error}
-                        </p>
+                        <p className="text-xs text-rose-400/80 mt-1 truncate max-w-md">{item.error}</p>
                       )}
                     </div>
                   </div>
@@ -193,24 +195,80 @@ export default function SqlQueryHistory({ queries }: Props) {
 
                 {/* 쿼리 본문 */}
                 {isQueryExpanded && (
-                  <div className="px-4 pb-4">
-                    <div className="bg-slate-900/80 rounded-lg p-4 overflow-x-auto">
-                      <pre className="text-sm font-mono whitespace-pre-wrap break-words">
-                        <code
-                          dangerouslySetInnerHTML={{ __html: formatSql(item.query) }}
-                          className="text-slate-300"
-                        />
-                      </pre>
+                  <div className="px-4 pb-4 space-y-3">
+                    {/* Few-shot 예제 표시 */}
+                    {item.fewShotExamples && item.fewShotExamples.length > 0 && (
+                      <div className="bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Sparkles className="w-4 h-4 text-violet-400" />
+                          <span className="text-sm font-medium text-violet-300">RAG 참조 쿼리 예제</span>
+                          <span className="text-xs text-violet-400/70 bg-violet-500/20 px-2 py-0.5 rounded-full">
+                            {item.fewShotExamples.length}개
+                          </span>
+                        </div>
+                        <div className="space-y-3">
+                          {item.fewShotExamples.map((example, exIndex) => (
+                            <div key={exIndex} className="bg-slate-900/60 rounded-lg p-3 border border-violet-500/10">
+                              <div className="flex items-start gap-2 mb-2">
+                                <BookOpen className="w-3.5 h-3.5 text-violet-400 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-slate-300">{example.description}</p>
+                                  {example.score !== undefined && (
+                                    <span className="text-xs text-violet-400/60 mt-1 block">
+                                      유사도: {(example.score * 100).toFixed(1)}%
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="bg-slate-950/50 rounded p-2 overflow-x-auto">
+                                <pre className="text-xs font-mono whitespace-pre-wrap break-words">
+                                  <code
+                                    dangerouslySetInnerHTML={{ __html: formatSql(example.sql) }}
+                                    className="text-slate-400"
+                                  />
+                                </pre>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 실행된 SQL 쿼리 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Code2 className="w-4 h-4 text-blue-400" />
+                          <span className="text-sm font-medium text-slate-300">실행된 쿼리</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs">
+                          <span className="flex items-center gap-1.5 px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded-md">
+                            <Clock className="w-3 h-3" />
+                            {item.executionTime}ms
+                          </span>
+                          <span className="flex items-center gap-1.5 px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md">
+                            <Rows3 className="w-3 h-3" />
+                            {item.rowCount}행 반환
+                          </span>
+                        </div>
+                      </div>
+                      <div className="bg-slate-900/80 rounded-lg p-4 overflow-x-auto">
+                        <pre className="text-sm font-mono whitespace-pre-wrap break-words">
+                          <code
+                            dangerouslySetInnerHTML={{ __html: formatSql(item.query) }}
+                            className="text-slate-300"
+                          />
+                        </pre>
+                      </div>
                     </div>
+
                     {item.error && (
-                      <div className="mt-3 p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg">
+                      <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg">
                         <div className="flex items-start gap-2">
                           <XCircle className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-rose-400 mb-1">SQL 실행 오류</p>
-                            <p className="text-sm text-rose-300/80 whitespace-pre-wrap break-words">
-                              {item.error}
-                            </p>
+                            <p className="text-sm text-rose-300/80 whitespace-pre-wrap break-words">{item.error}</p>
                           </div>
                         </div>
                       </div>

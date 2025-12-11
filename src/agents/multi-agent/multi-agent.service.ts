@@ -4,10 +4,13 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 
 import { createBedrockChatModel } from '@/agents/config/langchain.config';
+import { BedrockService } from '@/common/bedrock.service';
 import {
   ChartConfig,
+  ClarificationSection,
   ColumnDefinition,
   ExtraVisualization,
+  FewShotExample,
   FollowUpQuestion,
   InsightItem,
   MultiAgentResponse,
@@ -197,6 +200,7 @@ export class MultiAgentService {
     @InjectDataSource() private readonly dataSource: DataSource,
     @Optional() private readonly searchService?: SearchService,
     @Optional() private readonly ragService?: RagService,
+    @Optional() private readonly bedrockService?: BedrockService,
   ) {
     this.chatModel = createBedrockChatModel();
     this.workflow = createMultiAgentWorkflow({
@@ -212,13 +216,70 @@ export class MultiAgentService {
   }
 
   /**
-   * Multi-Agent 워크플로우 실행 (재시도 로직 포함)
+   * 질의 분석: 불충분한 질의인지 확인하고 명확화 질문 생성
    */
-  async executeQuery(query: string): Promise<MultiAgentResponse> {
+  async analyzeQuery(query: string): Promise<ClarificationSection | null> {
+    if (!this.bedrockService) {
+      this.logger.warn('BedrockService not available, skipping query analysis');
+      return null;
+    }
+
+    try {
+      this.logger.log(`📝 질의 분석 시작: "${query}"`);
+      const analysis = await this.bedrockService.analyzeQuery(query);
+
+      if (analysis.needsClarification && analysis.questions && analysis.questions.length > 0) {
+        this.logger.log(`⚠️ 명확화 필요: ${analysis.reason}`);
+        return {
+          needsClarification: true,
+          reason: analysis.reason,
+          questions: analysis.questions.map((q) => ({
+            type: q.type as ClarificationSection['questions'][0]['type'],
+            question: q.question,
+            options: q.options,
+            default: q.default,
+          })),
+        };
+      }
+
+      this.logger.log('✅ 질의가 충분히 명확함');
+      return { needsClarification: false };
+    } catch (error) {
+      this.logger.error('질의 분석 실패, 워크플로우 계속 진행', error);
+      return null;
+    }
+  }
+
+  /**
+   * Multi-Agent 워크플로우 실행 (재시도 로직 포함)
+   * @param query 사용자 질의
+   * @param skipClarification 명확화 단계 건너뛰기 (사용자가 이미 명확화 질문에 답한 경우)
+   */
+  async executeQuery(query: string, skipClarification = false): Promise<MultiAgentResponse> {
     const requestId = generateRequestId();
     const startTime = Date.now();
     const maxRetries = 3;
     let lastError: Error | null = null;
+
+    // Step 1: 질의 분석 (명확화 필요 여부 확인)
+    if (!skipClarification) {
+      const clarification = await this.analyzeQuery(query);
+      if (clarification?.needsClarification) {
+        this.logger.log(`[${requestId}] ⚠️ 명확화 필요 - 질문 ${clarification.questions?.length || 0}개`);
+        return {
+          meta: {
+            requestId,
+            query,
+            timestamp: new Date().toISOString(),
+            processingTime: Date.now() - startTime,
+            agentsUsed: [],
+            confidence: 0,
+            responseType: 'data_only',
+          },
+          clarification,
+        };
+      }
+    }
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -285,11 +346,15 @@ export class MultiAgentService {
     // 워크플로우 단계 추적
     const workflowSteps: WorkflowStep[] = [];
     const queryHistory: QueryHistoryItem[] = [];
+    // RAG에서 검색된 few-shot 예제 저장 (다음 SQL 쿼리에 연결)
+    let pendingFewShotExamples: FewShotExample[] = [];
     let stepCounter = 0;
 
     // 스트리밍으로 각 단계 추적
     let stepCount = 0;
     const agentsInvoked: string[] = [];
+    // 각 스텝의 시작/종료 시간 추적을 위한 변수
+    let previousStepEndTime = startTime;
 
     try {
       const stream = await this.workflow.stream(
@@ -301,7 +366,8 @@ export class MultiAgentService {
 
       for await (const chunk of stream) {
         stepCount++;
-        const elapsed = Date.now() - startTime;
+        const currentTime = Date.now();
+        const elapsed = currentTime - startTime;
 
         // 청크 정보 로깅
         this.logger.log(`\n[${requestId}] 📍 Step ${stepCount} (${elapsed}ms)`);
@@ -312,20 +378,23 @@ export class MultiAgentService {
 
         for (const key of chunkKeys) {
           const nodeOutput = chunk[key];
-          const stepStartTime = Date.now();
+          // 이 스텝의 시작 시간은 이전 스텝의 종료 시간 (스트림이 도착한 시점이 종료 시점)
+          const stepStartTime = previousStepEndTime;
+          const stepEndTime = Date.now();
 
           if (key === 'supervisor') {
             this.logger.log(`[${requestId}]   🎯 Supervisor 결정`);
 
             // Supervisor 단계 기록
+            const stepDuration = stepEndTime - stepStartTime;
             const step: WorkflowStep = {
               id: `step_${++stepCounter}`,
               agent: 'supervisor',
               agentDisplayName: AGENT_DISPLAY_NAMES['supervisor'] || 'Supervisor',
               status: 'completed',
               startTime: stepStartTime,
-              endTime: Date.now(),
-              duration: Date.now() - stepStartTime,
+              endTime: stepEndTime,
+              duration: stepDuration,
             };
 
             if (nodeOutput?.messages) {
@@ -334,6 +403,7 @@ export class MultiAgentService {
                 const content = typeof lastMsg.content === 'string' ? lastMsg.content : JSON.stringify(lastMsg.content);
                 step.output = content.substring(0, 300);
                 this.logger.log(`[${requestId}]   내용: ${content.substring(0, 200)}...`);
+                this.logger.log(`[${requestId}]   소요 시간: ${stepDuration}ms`);
 
                 // 작업 요약 생성
                 const { summary, details } = generateAgentSummary('supervisor', content);
@@ -342,11 +412,14 @@ export class MultiAgentService {
               }
             }
             workflowSteps.push(step);
+            // 다음 스텝의 시작 시간을 위해 현재 종료 시간 저장
+            previousStepEndTime = stepEndTime;
           } else if (key !== '__end__') {
             if (!agentsInvoked.includes(key)) {
               agentsInvoked.push(key);
             }
-            this.logger.log(`[${requestId}]   🤖 에이전트: ${key}`);
+            const stepDuration = stepEndTime - stepStartTime;
+            this.logger.log(`[${requestId}]   🤖 에이전트: ${key} (${stepDuration}ms)`);
 
             // 에이전트 단계 기록
             const step: WorkflowStep = {
@@ -355,8 +428,8 @@ export class MultiAgentService {
               agentDisplayName: AGENT_DISPLAY_NAMES[key] || key,
               status: 'completed',
               startTime: stepStartTime,
-              endTime: Date.now(),
-              duration: Date.now() - stepStartTime,
+              endTime: stepEndTime,
+              duration: stepDuration,
             };
 
             // 요약 생성을 위한 전체 콘텐츠 수집
@@ -367,15 +440,22 @@ export class MultiAgentService {
               const msgCount = nodeOutput.messages.length;
               this.logger.log(`[${requestId}]   메시지 수: ${msgCount}`);
 
-              // 모든 메시지에서 SQL 쿼리 추출
+              // SQL Expert: SQL 쿼리 및 RAG 결과 추출
               if (key === 'sql_expert') {
                 for (const msg of nodeOutput.messages) {
-                  // AIMessage의 tool_calls에서 SQL 쿼리 추출
+                  // AIMessage의 tool_calls에서 SQL 쿼리 및 RAG 검색 추출
                   if (msg instanceof AIMessage && msg.tool_calls && msg.tool_calls.length > 0) {
                     // tool_calls 수집
                     toolCalls = [...toolCalls, ...msg.tool_calls];
 
                     for (const toolCall of msg.tool_calls) {
+                      // RAG few-shot 예제 검색 툴 호출 감지
+                      if (toolCall.name === 'get_similar_sql_examples' && toolCall.args?.question) {
+                        this.logger.log(
+                          `[${requestId}]   🔍 RAG 유사 쿼리 검색: ${String(toolCall.args.question).substring(0, 50)}...`,
+                        );
+                      }
+
                       if (toolCall.name === 'execute_sql' && toolCall.args?.query) {
                         const sqlQuery = toolCall.args.query as string;
                         this.logger.log(`[${requestId}]   📝 SQL 쿼리 감지: ${sqlQuery.substring(0, 80)}...`);
@@ -383,6 +463,18 @@ export class MultiAgentService {
                         // 이미 같은 쿼리가 추가되었는지 확인
                         const exists = queryHistory.some((q) => q.query === sqlQuery);
                         if (!exists) {
+                          // pendingFewShotExamples가 있으면 이 쿼리에 연결
+                          const fewShotExamples =
+                            pendingFewShotExamples.length > 0 ? [...pendingFewShotExamples] : undefined;
+
+                          if (fewShotExamples) {
+                            this.logger.log(
+                              `[${requestId}]   📚 Few-shot 예제 ${fewShotExamples.length}개를 SQL 쿼리에 연결`,
+                            );
+                            // 연결 후 초기화
+                            pendingFewShotExamples = [];
+                          }
+
                           queryHistory.push({
                             id: `query_${queryHistory.length + 1}`,
                             query: sqlQuery,
@@ -390,6 +482,7 @@ export class MultiAgentService {
                             executionTime: 0,
                             rowCount: 0,
                             success: false, // ToolMessage에서 업데이트됨
+                            fewShotExamples,
                           });
                         }
                       }
@@ -399,6 +492,35 @@ export class MultiAgentService {
                   // ToolMessage에서 실행 결과 추출하여 queryHistory 업데이트
                   const msgContent = typeof msg.content === 'string' ? msg.content : '';
                   allContent += msgContent + '\n';
+
+                  // RAG 검색 결과 (get_similar_sql_examples) 파싱
+                  // 응답 형식: { found: true, count: N, examples: [{rank, score, description, sql}], hint }
+                  if (msgContent.includes('"found":true') && msgContent.includes('"examples"')) {
+                    try {
+                      const parsed = JSON.parse(msgContent);
+                      if (parsed.found && parsed.examples && Array.isArray(parsed.examples)) {
+                        pendingFewShotExamples = parsed.examples.map(
+                          (ex: { description: string; sql: string; score: string | number }) => ({
+                            description: ex.description,
+                            sql: ex.sql,
+                            // score가 문자열로 올 수 있음 (예: "0.850")
+                            score: typeof ex.score === 'string' ? parseFloat(ex.score) : ex.score,
+                          }),
+                        );
+                        this.logger.log(
+                          `[${requestId}]   📚 RAG few-shot 예제 ${pendingFewShotExamples.length}개 캡처됨`,
+                        );
+                        // 캡처된 예제 내용 로깅
+                        pendingFewShotExamples.forEach((ex, idx) => {
+                          this.logger.log(
+                            `[${requestId}]     ${idx + 1}. ${ex.description.substring(0, 50)}... (score: ${ex.score})`,
+                          );
+                        });
+                      }
+                    } catch (e) {
+                      this.logger.warn(`[${requestId}]   ⚠️ RAG 결과 파싱 실패: ${e instanceof Error ? e.message : e}`);
+                    }
+                  }
 
                   // 성공한 쿼리 결과 처리
                   if (msgContent.includes('"success":true') && msgContent.includes('"data":')) {
@@ -454,6 +576,8 @@ export class MultiAgentService {
             step.details = details;
 
             workflowSteps.push(step);
+            // 다음 스텝의 시작 시간을 위해 현재 종료 시간 저장
+            previousStepEndTime = stepEndTime;
           }
 
           // 최종 결과 업데이트
@@ -505,7 +629,8 @@ export class MultiAgentService {
     queryHistory: QueryHistoryItem[] = [],
   ): MultiAgentResponse {
     const messages = result.messages || [];
-    const agentsUsed: string[] = [];
+    // 워크플로우 단계에서 에이전트 목록 추출 (supervisor 제외, 중복 제거)
+    const agentsUsed: string[] = [...new Set(workflowSteps.map((s) => s.agent).filter((a) => a !== 'supervisor'))];
     let responseType: ResponseType = 'data_only';
 
     this.logger.log(`[${requestId}] 📦 응답 파싱 시작 - 메시지 수: ${messages.length}`);
@@ -610,9 +735,6 @@ export class MultiAgentService {
           const parsed = JSON.parse(rawContent);
           if (parsed.success && parsed.data && Array.isArray(parsed.data)) {
             this.logger.log(`[${requestId}]   ✅ SQL 결과 발견 - ${parsed.data.length}개 행`);
-            if (!agentsUsed.includes('sql_expert')) {
-              agentsUsed.push('sql_expert');
-            }
 
             const rows = parsed.data;
             if (rows.length > 0) {
@@ -640,10 +762,6 @@ export class MultiAgentService {
       if (message instanceof AIMessage) {
         // SQL Expert 결과 파싱 (마크다운 형식)
         if (content.includes('execute_sql') || content.includes('SELECT')) {
-          if (!agentsUsed.includes('sql_expert')) {
-            agentsUsed.push('sql_expert');
-          }
-
           // SQL 쿼리 추출
           const sqlMatch = content.match(/```sql\n?([\s\S]*?)```/);
           if (sqlMatch && !sqlData?.query) {
@@ -703,10 +821,6 @@ export class MultiAgentService {
             content.includes('trend') ||
             content.includes('패턴'))
         ) {
-          if (!agentsUsed.includes('insight_analyst')) {
-            agentsUsed.push('insight_analyst');
-          }
-
           // JSON 형식 인사이트 추출
           const jsonMatch = content.match(/```json\n?([\s\S]*?)```/);
           if (jsonMatch) {
@@ -758,10 +872,6 @@ export class MultiAgentService {
           content.includes('pie') ||
           content.includes('datasets')
         ) {
-          if (!agentsUsed.includes('chart_advisor')) {
-            agentsUsed.push('chart_advisor');
-          }
-
           // 모든 JSON 블록 찾기 (여러 개 있을 수 있음)
           const jsonMatches = content.matchAll(/```json\n?([\s\S]*?)```/g);
           for (const match of jsonMatches) {
@@ -825,10 +935,6 @@ export class MultiAgentService {
 
         // Followup Agent 결과 파싱
         if (content.includes('followup') || content.includes('후속') || content.includes('추가 질문')) {
-          if (!agentsUsed.includes('followup_agent')) {
-            agentsUsed.push('followup_agent');
-          }
-
           const jsonMatch = content.match(/```json\n?([\s\S]*?)```/);
           if (jsonMatch) {
             try {

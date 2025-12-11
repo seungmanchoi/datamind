@@ -2,9 +2,9 @@ import { useMutation } from '@tanstack/react-query';
 import { Loader2, Search, Sparkles, Users } from 'lucide-react';
 import { useCallback, useState } from 'react';
 
-import { ResponseContainer } from '@/components/multi-agent';
+import { ClarificationModal, ResponseContainer } from '@/components/multi-agent';
 import FollowUpPanel, { type ExtendedFollowUpQuestion } from '@/components/multi-agent/followup/FollowUpPanel';
-import { type FollowUpQuestion, type MultiAgentResponse, api } from '@/lib/api';
+import { type ClarificationSection, type FollowUpQuestion, type MultiAgentResponse, api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 export default function MultiAgentPage() {
@@ -12,13 +12,29 @@ export default function MultiAgentPage() {
   const [result, setResult] = useState<MultiAgentResponse | null>(null);
   const [isFollowUp, setIsFollowUp] = useState(false);
 
+  // 명확화 모달 상태
+  const [showClarificationModal, setShowClarificationModal] = useState(false);
+  const [clarification, setClarification] = useState<ClarificationSection | null>(null);
+  const [originalQuery, setOriginalQuery] = useState('');
+
   // 후속 질문 히스토리 관리
   const [followUpHistory, setFollowUpHistory] = useState<ExtendedFollowUpQuestion[]>([]);
 
   const queryMutation = useMutation({
-    mutationFn: (queryText: string) => api.queryMultiAgent(queryText),
+    mutationFn: ({ queryText, skipClarification }: { queryText: string; skipClarification: boolean }) =>
+      api.queryMultiAgent(queryText, skipClarification),
     onSuccess: (data) => {
+      // 명확화가 필요한 경우
+      if (data.clarification?.needsClarification) {
+        setClarification(data.clarification);
+        setOriginalQuery(data.meta.query);
+        setShowClarificationModal(true);
+        return;
+      }
+
       setResult(data);
+      setShowClarificationModal(false);
+      setClarification(null);
 
       // 새로운 후속 질문을 히스토리에 추가 (중복 제거)
       if (data.followUp?.questions && data.followUp.questions.length > 0) {
@@ -59,15 +75,32 @@ export default function MultiAgentPage() {
       // 새 질문이므로 후속 질문 히스토리 초기화
       setFollowUpHistory([]);
       setIsFollowUp(false);
-      queryMutation.mutate(query.trim());
+      queryMutation.mutate({ queryText: query.trim(), skipClarification: false });
     }
   };
+
+  // 명확화된 질의로 다시 요청
+  const handleClarificationSubmit = useCallback(
+    (clarifiedQuery: string) => {
+      setQuery(clarifiedQuery);
+      setShowClarificationModal(false);
+      // 명확화 단계 건너뛰고 바로 실행
+      queryMutation.mutate({ queryText: clarifiedQuery, skipClarification: true });
+    },
+    [queryMutation],
+  );
+
+  // 명확화 취소
+  const handleClarificationCancel = useCallback(() => {
+    setShowClarificationModal(false);
+    setClarification(null);
+  }, []);
 
   const handleFollowUpClick = useCallback(
     (followUpQuery: string) => {
       setQuery(followUpQuery);
       setIsFollowUp(true);
-      queryMutation.mutate(followUpQuery);
+      queryMutation.mutate({ queryText: followUpQuery, skipClarification: false });
     },
     [queryMutation],
   );
@@ -87,7 +120,7 @@ export default function MultiAgentPage() {
 
   const handleRetry = () => {
     if (result?.meta.query) {
-      queryMutation.mutate(result.meta.query);
+      queryMutation.mutate({ queryText: result.meta.query, skipClarification: true });
     }
   };
 
@@ -222,6 +255,16 @@ export default function MultiAgentPage() {
           }}
           onFollowUpClick={handleFollowUpClick}
           onRetry={handleRetry}
+        />
+      )}
+
+      {/* 명확화 모달 */}
+      {showClarificationModal && clarification && (
+        <ClarificationModal
+          clarification={clarification}
+          originalQuery={originalQuery}
+          onSubmit={handleClarificationSubmit}
+          onCancel={handleClarificationCancel}
         />
       )}
     </div>

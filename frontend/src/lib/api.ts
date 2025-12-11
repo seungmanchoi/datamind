@@ -23,6 +23,8 @@ export const API_ENDPOINTS = {
   examples: '/indexing/examples',
   indexProducts: '/indexing/products',
   health: '/health',
+  exportExcel: '/export/excel',
+  checkExportable: '/export/excel/check',
 } as const;
 
 // ============================================
@@ -215,6 +217,8 @@ export interface QueryHistoryItem {
   rowCount: number;
   success: boolean;
   error?: string;
+  /** RAG를 통해 검색된 few-shot SQL 예제들 */
+  fewShotExamples?: FewShotExample[];
 }
 
 export interface WorkflowSection {
@@ -248,8 +252,38 @@ export interface ErrorSection {
   suggestion?: string;
 }
 
+// ============================================
+// 공통 질의 명확화 타입 (Clarification)
+// AI 질의와 Multi-Agent에서 공통으로 사용
+// ============================================
+
+/**
+ * 명확화 질문 타입
+ * - period: 기간 정보 (예: 오늘, 이번 주, 이번 달)
+ * - limit: 결과 개수 (예: 상위 10개, 20개)
+ * - filter: 필터 조건 (예: 가격대, 상태)
+ * - grouping: 그룹화 단위 (예: 일별, 주별, 월별)
+ * - category: 카테고리 선택 (예: 아동복, 의류)
+ * - order: 정렬 순서 (예: 오름차순, 내림차순)
+ */
+export type ClarificationType = 'period' | 'limit' | 'filter' | 'grouping' | 'category' | 'order';
+
+export interface ClarificationQuestion {
+  type: ClarificationType;
+  question: string;
+  options: string[];
+  default: string;
+}
+
+export interface ClarificationSection {
+  needsClarification: boolean;
+  reason?: string;
+  questions?: ClarificationQuestion[];
+}
+
 export interface MultiAgentResponse {
   meta: ResponseMeta;
+  clarification?: ClarificationSection;
   data?: DataSection;
   insights?: InsightSection;
   visualizations?: VisualizationSection;
@@ -292,16 +326,8 @@ export interface AgentQueryResponse {
     recommendation?: string;
   };
 
-  // Phase 7: 추가 질문 (선택적)
-  clarifyingQuestions?: {
-    reason: string;
-    questions: Array<{
-      type: 'period' | 'limit' | 'filter' | 'grouping' | 'category';
-      question: string;
-      options: string[];
-      default: string;
-    }>;
-  };
+  // Phase 7: 추가 질문 (선택적) - 공통 타입 사용
+  clarifyingQuestions?: ClarificationSection;
 }
 
 export interface SearchResultItem {
@@ -335,6 +361,7 @@ export interface IndexProductsResponse {
 export interface FewShotExample {
   description: string;
   sql: string;
+  score?: number;
 }
 
 export interface ExampleItem {
@@ -377,8 +404,11 @@ export const api = {
   },
 
   // Multi-Agent 질의 실행
-  async queryMultiAgent(query: string): Promise<MultiAgentResponse> {
-    const response = await apiClient.post<MultiAgentResponse>(API_ENDPOINTS.multiAgentQuery, { query });
+  async queryMultiAgent(query: string, skipClarification = false): Promise<MultiAgentResponse> {
+    const response = await apiClient.post<MultiAgentResponse>(API_ENDPOINTS.multiAgentQuery, {
+      query,
+      skipClarification,
+    });
     return response.data;
   },
 
@@ -442,6 +472,58 @@ export const api = {
   async indexProducts(): Promise<IndexProductsResponse> {
     const response = await apiClient.post<IndexProductsResponse>(API_ENDPOINTS.indexProducts);
     return response.data;
+  },
+
+  // 엑셀 변환 가능 여부 확인
+  async checkExportable(
+    columns: ColumnDefinition[],
+    rows: Record<string, unknown>[],
+  ): Promise<{ exportable: boolean; reason?: string; rowCount?: number; columnCount?: number }> {
+    const response = await apiClient.post<{
+      exportable: boolean;
+      reason?: string;
+      rowCount?: number;
+      columnCount?: number;
+    }>(API_ENDPOINTS.checkExportable, { columns, rows });
+    return response.data;
+  },
+
+  // 엑셀 파일 다운로드
+  async exportToExcel(
+    title: string,
+    columns: ColumnDefinition[],
+    rows: Record<string, unknown>[],
+    query?: string,
+  ): Promise<void> {
+    const response = await apiClient.post(
+      API_ENDPOINTS.exportExcel,
+      { title, columns, rows, query },
+      { responseType: 'blob' },
+    );
+
+    // Blob URL 생성하여 다운로드
+    const blob = new Blob([response.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+
+    // Content-Disposition 헤더에서 파일명 추출 시도
+    const contentDisposition = response.headers['content-disposition'];
+    let filename = `${title}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+      if (filenameMatch) {
+        filename = decodeURIComponent(filenameMatch[1]);
+      }
+    }
+
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   },
 };
 

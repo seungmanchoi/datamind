@@ -6,6 +6,7 @@ import {
 } from '@aws-sdk/client-bedrock-runtime';
 import { Injectable, Logger } from '@nestjs/common';
 
+import { QueryAnalysisResult } from '@/dto/common';
 import { INSIGHT_GENERATION_PROMPT } from '@/prompts/insight-generation.prompt';
 import { QUERY_ANALYSIS_PROMPT } from '@/prompts/query-analysis.prompt';
 import { VISUALIZATION_SELECTION_PROMPT } from '@/prompts/visualization-selection.prompt';
@@ -186,16 +187,7 @@ Generate a MySQL query for the above request.`;
    * @param userQuery 사용자 질문
    * @returns 질의 분석 결과 (추가 질문 포함 여부)
    */
-  async analyzeQuery(userQuery: string): Promise<{
-    needsClarification: boolean;
-    reason?: string;
-    questions?: Array<{
-      type: 'period' | 'limit' | 'filter' | 'grouping' | 'category';
-      question: string;
-      options: string[];
-      default: string;
-    }>;
-  }> {
+  async analyzeQuery(userQuery: string): Promise<QueryAnalysisResult> {
     const prompt = QUERY_ANALYSIS_PROMPT.replace('{{USER_QUERY}}', userQuery);
 
     this.logger.log('Analyzing user query for clarification needs');

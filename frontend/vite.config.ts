@@ -29,6 +29,14 @@ export default defineConfig({
         target: 'http://localhost:3000',
         changeOrigin: true,
       },
+      '/export': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+      '/multi-agent': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
     },
   },
 });

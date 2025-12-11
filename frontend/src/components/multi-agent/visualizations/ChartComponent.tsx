@@ -1,22 +1,23 @@
-import { useState, useMemo } from 'react';
+import { BarChart3, Info, LineChart as LineChartIcon, PieChart as PieChartIcon } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  AreaChart,
   Area,
-  PieChart,
-  Pie,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
   Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
 } from 'recharts';
-import { BarChart3, LineChart as LineChartIcon, PieChart as PieChartIcon, Info } from 'lucide-react';
+
 import type { ChartConfig, ChartType } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -96,14 +97,7 @@ export default function ChartComponent({ config, reason, alternatives }: Props) 
                 </>
               ) : (
                 <>
-                  <XAxis
-                    dataKey="name"
-                    stroke="#9ca3af"
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                    interval={0}
-                  />
+                  <XAxis dataKey="name" stroke="#9ca3af" angle={-45} textAnchor="end" height={80} interval={0} />
                   <YAxis stroke="#9ca3af" />
                 </>
               )}
@@ -132,14 +126,7 @@ export default function ChartComponent({ config, reason, alternatives }: Props) 
           <ResponsiveContainer width="100%" height={400}>
             <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis
-                dataKey="name"
-                stroke="#9ca3af"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                interval={0}
-              />
+              <XAxis dataKey="name" stroke="#9ca3af" angle={-45} textAnchor="end" height={80} interval={0} />
               <YAxis stroke="#9ca3af" />
               <Tooltip
                 contentStyle={{
@@ -168,14 +155,7 @@ export default function ChartComponent({ config, reason, alternatives }: Props) 
           <ResponsiveContainer width="100%" height={400}>
             <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis
-                dataKey="name"
-                stroke="#9ca3af"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                interval={0}
-              />
+              <XAxis dataKey="name" stroke="#9ca3af" angle={-45} textAnchor="end" height={80} interval={0} />
               <YAxis stroke="#9ca3af" />
               <Tooltip
                 contentStyle={{
@@ -266,7 +246,7 @@ export default function ChartComponent({ config, reason, alternatives }: Props) 
                     'p-2 rounded-lg transition-colors',
                     selectedType === type
                       ? 'bg-primary text-white'
-                      : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                      : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10',
                   )}
                   title={type}
                 >

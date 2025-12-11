@@ -1,5 +1,7 @@
 import { IsArray, IsEnum, IsString } from 'class-validator';
 
+import { ClarificationType } from '@/dto/common';
+
 /**
  * 개별 추가 질문 DTO
  */
@@ -11,9 +13,10 @@ export class ClarifyingQuestionItemDto {
    * - filter: 필터링 질문 (예: "특정 카테고리로 한정하시겠습니까?")
    * - grouping: 그룹화 질문 (예: "일별, 주별, 월별 중 어떻게 보시겠습니까?")
    * - category: 카테고리 선택 질문 (예: "어떤 카테고리의 상품을 보시겠습니까?")
+   * - order: 정렬 순서 질문 (예: "오름차순, 내림차순 중 어떻게 정렬할까요?")
    */
-  @IsEnum(['period', 'limit', 'filter', 'grouping', 'category'])
-  type: 'period' | 'limit' | 'filter' | 'grouping' | 'category';
+  @IsEnum(['period', 'limit', 'filter', 'grouping', 'category', 'order'])
+  type: ClarificationType;
 
   /**
    * 질문 내용

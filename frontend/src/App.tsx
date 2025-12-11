@@ -1,12 +1,13 @@
 import { useState } from 'react';
+
 import Header from '@/components/Header';
 import Navigation from '@/components/Navigation';
-import QueryPage from '@/components/pages/QueryPage';
-import MultiAgentPage from '@/components/pages/MultiAgentPage';
-import SearchPage from '@/components/pages/SearchPage';
 import EmbeddingPage from '@/components/pages/EmbeddingPage';
 import HistoryPage from '@/components/pages/HistoryPage';
 import MetricsPage from '@/components/pages/MetricsPage';
+import MultiAgentPage from '@/components/pages/MultiAgentPage';
+import QueryPage from '@/components/pages/QueryPage';
+import SearchPage from '@/components/pages/SearchPage';
 
 type PageType = 'query' | 'multi-agent' | 'search' | 'embedding' | 'history' | 'metrics';
 
@@ -42,9 +43,7 @@ function App() {
       <Header />
       <Navigation currentPage={currentPage} onPageChange={setCurrentPage} />
 
-      <main className="container mx-auto px-4 py-8 relative z-10">
-        {renderPage()}
-      </main>
+      <main className="container mx-auto px-4 py-8 relative z-10">{renderPage()}</main>
     </div>
   );
 }

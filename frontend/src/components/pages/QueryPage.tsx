@@ -1,48 +1,51 @@
-import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import {
-  Search,
-  Loader2,
-  Bot,
+  AlertCircle,
   BarChart3,
+  Bot,
+  Lightbulb,
   LineChart,
+  Loader2,
   PieChart,
+  Search,
   Sparkles,
   TrendingUp,
-  AlertCircle,
-  Lightbulb,
-  X,
 } from 'lucide-react';
-import { useMutation } from '@tanstack/react-query';
-import { api, type AgentQueryResponse } from '@/lib/api';
-import { cn, formatCurrency, formatNumber, translateColumnName } from '@/lib/utils';
+import { useCallback, useState } from 'react';
+
+import { ClarificationModal } from '@/components/multi-agent';
 import ResultChart from '@/components/ResultChart';
+import { type AgentQueryResponse, type ClarificationSection, api } from '@/lib/api';
+import { cn, formatCurrency, formatNumber, translateColumnName } from '@/lib/utils';
 
 export default function QueryPage() {
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<AgentQueryResponse | null>(null);
   const [chartType, setChartType] = useState<'bar' | 'line' | 'pie'>('bar');
-  const [showClarifyingModal, setShowClarifyingModal] = useState(false);
-  const [clarifyingAnswers, setClarifyingAnswers] = useState<Record<number, string>>({});
+
+  // 명확화 모달 상태 (공통 컴포넌트 사용)
+  const [showClarificationModal, setShowClarificationModal] = useState(false);
+  const [clarification, setClarification] = useState<ClarificationSection | null>(null);
+  const [originalQuery, setOriginalQuery] = useState('');
 
   const queryMutation = useMutation({
     mutationFn: (queryText: string) => api.queryAgent(queryText),
     onSuccess: (data) => {
-      setResult(data);
-
       // Phase 7: 추가 질문이 있으면 모달 표시
-      if (data.clarifyingQuestions) {
-        setShowClarifyingModal(true);
-        // 기본값 설정
-        const defaultAnswers: Record<number, string> = {};
-        data.clarifyingQuestions.questions.forEach((q, index) => {
-          defaultAnswers[index] = q.default;
-        });
-        setClarifyingAnswers(defaultAnswers);
-      } else {
-        // Phase 7: AI 추천 차트 타입 자동 설정
-        if (data.visualization?.chartType) {
-          setChartType(data.visualization.chartType);
-        }
+      if (data.clarifyingQuestions?.needsClarification) {
+        setClarification(data.clarifyingQuestions);
+        setOriginalQuery(data.query);
+        setShowClarificationModal(true);
+        return;
+      }
+
+      setResult(data);
+      setShowClarificationModal(false);
+      setClarification(null);
+
+      // Phase 7: AI 추천 차트 타입 자동 설정
+      if (data.visualization?.chartType) {
+        setChartType(data.visualization.chartType);
       }
 
       // 히스토리에 저장 (LocalStorage)
@@ -67,19 +70,22 @@ export default function QueryPage() {
     }
   };
 
-  // 추가 질문에 답변하고 다시 질의
-  const handleClarifyingSubmit = () => {
-    if (result?.clarifyingQuestions) {
-      // 질문과 답변을 합쳐서 새로운 질의 생성
-      const questions = result.clarifyingQuestions.questions;
-      const clarifiedQuery = `${result.query} (${questions
-        .map((q, idx) => `${q.question}: ${clarifyingAnswers[idx]}`)
-        .join(', ')})`;
-
-      setShowClarifyingModal(false);
+  // 명확화된 질의로 다시 요청
+  const handleClarificationSubmit = useCallback(
+    (clarifiedQuery: string) => {
+      setQuery(clarifiedQuery);
+      setShowClarificationModal(false);
+      setClarification(null);
       queryMutation.mutate(clarifiedQuery);
-    }
-  };
+    },
+    [queryMutation],
+  );
+
+  // 명확화 취소
+  const handleClarificationCancel = useCallback(() => {
+    setShowClarificationModal(false);
+    setClarification(null);
+  }, []);
 
   // 프리셋 예제 쿼리
   const exampleQueries = [
@@ -123,7 +129,7 @@ export default function QueryPage() {
             className={cn(
               'px-6 py-3.5 bg-gradient-to-r from-primary to-indigo-600 text-white rounded-xl font-medium',
               'hover:shadow-lg hover:shadow-primary/30 transition-all flex items-center gap-2',
-              'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none'
+              'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none',
             )}
           >
             {queryMutation.isPending ? (
@@ -166,72 +172,17 @@ export default function QueryPage() {
         </div>
       )}
 
-      {/* Phase 7: 추가 질문 모달 */}
-      {showClarifyingModal && result?.clarifyingQuestions && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="glass rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-white/10">
-            <div className="p-6 border-b border-white/10 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                <div className="bg-gradient-to-br from-primary to-indigo-600 p-2 rounded-xl">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                질문을 좀 더 구체화해주세요
-              </h3>
-              <button
-                onClick={() => setShowClarifyingModal(false)}
-                className="text-slate-400 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-              <p className="text-slate-200 bg-primary/10 p-4 rounded-xl border border-primary/20">
-                {result.clarifyingQuestions.reason}
-              </p>
-
-              {result.clarifyingQuestions.questions.map((question, index) => (
-                <div key={index} className="space-y-2">
-                  <label className="block text-sm font-semibold text-slate-300">
-                    {question.question}
-                  </label>
-                  <select
-                    value={clarifyingAnswers[index] || question.default}
-                    onChange={(e) =>
-                      setClarifyingAnswers({ ...clarifyingAnswers, [index]: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-slate-900/50 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-white"
-                  >
-                    {question.options.map((option) => (
-                      <option key={option} value={option} className="bg-slate-900 text-white">
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-            </div>
-
-            <div className="p-6 border-t border-white/10 flex justify-end gap-3">
-              <button
-                onClick={() => setShowClarifyingModal(false)}
-                className="px-5 py-2.5 text-slate-300 bg-white/5 rounded-xl hover:bg-white/10 transition-all"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleClarifyingSubmit}
-                className="px-5 py-2.5 bg-gradient-to-r from-primary to-indigo-600 text-white rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all flex items-center gap-2"
-              >
-                <Search className="w-4 h-4" />
-                다시 질의하기
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* 명확화 모달 (공통 컴포넌트) */}
+      {showClarificationModal && clarification && (
+        <ClarificationModal
+          clarification={clarification}
+          originalQuery={originalQuery}
+          onSubmit={handleClarificationSubmit}
+          onCancel={handleClarificationCancel}
+        />
       )}
 
-      {result && !result.clarifyingQuestions && (
+      {result && !result.clarifyingQuestions?.needsClarification && (
         <div className="glass rounded-2xl p-8 space-y-6 shadow-lg">
           <div>
             <h3 className="text-lg font-bold text-white mb-3">질의</h3>
@@ -263,9 +214,7 @@ export default function QueryPage() {
               {/* 핵심 발견사항 */}
               {result.insights.keyFindings.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wide">
-                    핵심 발견사항
-                  </h4>
+                  <h4 className="text-sm font-bold text-slate-400 mb-3 uppercase tracking-wide">핵심 발견사항</h4>
                   <ul className="space-y-2.5">
                     {result.insights.keyFindings.map((finding, idx) => (
                       <li
@@ -351,9 +300,7 @@ export default function QueryPage() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-white">
-                    결과 ({result.results.length}건)
-                  </h3>
+                  <h3 className="text-lg font-semibold text-white">결과 ({result.results.length}건)</h3>
                   {result.visualization && (
                     <p className="text-sm text-slate-400 mt-1 flex items-center gap-1">
                       <Sparkles className="w-4 h-4 text-yellow-500" />
@@ -368,7 +315,7 @@ export default function QueryPage() {
                       'px-4 py-2 text-sm rounded-xl transition-all flex items-center gap-2 font-medium',
                       chartType === 'bar'
                         ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white',
                     )}
                   >
                     <BarChart3 className="w-4 h-4" />
@@ -380,7 +327,7 @@ export default function QueryPage() {
                       'px-4 py-2 text-sm rounded-xl transition-all flex items-center gap-2 font-medium',
                       chartType === 'line'
                         ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white',
                     )}
                   >
                     <LineChart className="w-4 h-4" />
@@ -392,7 +339,7 @@ export default function QueryPage() {
                       'px-4 py-2 text-sm rounded-xl transition-all flex items-center gap-2 font-medium',
                       chartType === 'pie'
                         ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white',
                     )}
                   >
                     <PieChart className="w-4 h-4" />
@@ -411,68 +358,58 @@ export default function QueryPage() {
               {(result.visualization?.type === 'table' ||
                 result.visualization?.type === 'both' ||
                 !result.visualization) && (
-                  <div className="overflow-x-auto rounded-xl border border-white/10 glass">
-                    <table className="min-w-full divide-y divide-white/10">
-                      <thead className="bg-white/5">
-                        <tr>
-                          {Object.keys(result.results[0]).map((key) => (
-                            <th
-                              key={key}
-                              className="px-5 py-4 text-left text-xs font-bold text-slate-300 tracking-wider"
-                            >
-                              {translateColumnName(key)}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/5">
-                        {result.results.map((row, idx) => {
-                          return (
-                            <tr key={idx} className="hover:bg-white/5 transition-colors">
-                              {Object.entries(row).map(([key, value], cellIdx) => {
-                                // 금액 필드인지 확인
-                                const isCurrency =
-                                  /price|amount|금액|매출|판매|수익|revenue|sales|total|합계|평균/i.test(
-                                    key,
-                                  );
+                <div className="overflow-x-auto rounded-xl border border-white/10 glass">
+                  <table className="min-w-full divide-y divide-white/10">
+                    <thead className="bg-white/5">
+                      <tr>
+                        {Object.keys(result.results[0]).map((key) => (
+                          <th key={key} className="px-5 py-4 text-left text-xs font-bold text-slate-300 tracking-wider">
+                            {translateColumnName(key)}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {result.results.map((row, idx) => {
+                        return (
+                          <tr key={idx} className="hover:bg-white/5 transition-colors">
+                            {Object.entries(row).map(([key, value], cellIdx) => {
+                              // 금액 필드인지 확인
+                              const isCurrency = /price|amount|금액|매출|판매|수익|revenue|sales|total|합계|평균/i.test(
+                                key,
+                              );
 
-                                // 숫자 필드인지 확인
-                                const isNumeric =
-                                  value !== null &&
-                                  value !== '' &&
-                                  !isNaN(Number(value));
+                              // 숫자 필드인지 확인
+                              const isNumeric = value !== null && value !== '' && !isNaN(Number(value));
 
-                                let displayValue: string;
-                                if (isCurrency && isNumeric) {
-                                  displayValue = formatCurrency(value as string | number);
-                                } else if (
-                                  isNumeric &&
-                                  /수량|count|개수|건수/i.test(key)
-                                ) {
-                                  displayValue = formatNumber(value as string | number);
-                                } else {
-                                  displayValue = String(value ?? '');
-                                }
+                              let displayValue: string;
+                              if (isCurrency && isNumeric) {
+                                displayValue = formatCurrency(value as string | number);
+                              } else if (isNumeric && /수량|count|개수|건수/i.test(key)) {
+                                displayValue = formatNumber(value as string | number);
+                              } else {
+                                displayValue = String(value ?? '');
+                              }
 
-                                return (
-                                  <td
-                                    key={cellIdx}
-                                    className={cn(
-                                      'px-5 py-4 text-sm text-slate-300 font-medium',
-                                      isNumeric ? 'text-right whitespace-nowrap' : 'whitespace-nowrap',
-                                    )}
-                                  >
-                                    {displayValue}
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                              return (
+                                <td
+                                  key={cellIdx}
+                                  className={cn(
+                                    'px-5 py-4 text-sm text-slate-300 font-medium',
+                                    isNumeric ? 'text-right whitespace-nowrap' : 'whitespace-nowrap',
+                                  )}
+                                >
+                                  {displayValue}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

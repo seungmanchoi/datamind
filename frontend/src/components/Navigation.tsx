@@ -1,4 +1,5 @@
-import { MessageSquare, Search, History, BarChart, Box, Users } from 'lucide-react';
+import { BarChart, Box, History, MessageSquare, Search, Users } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 
 type PageType = 'query' | 'multi-agent' | 'search' | 'embedding' | 'history' | 'metrics';
@@ -29,7 +30,7 @@ export default function Navigation({ currentPage, onPageChange }: NavigationProp
               'flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
               currentPage === item.id
                 ? 'bg-primary text-white shadow-lg shadow-primary/25'
-                : 'text-slate-400 hover:text-white hover:bg-white/5'
+                : 'text-slate-400 hover:text-white hover:bg-white/5',
             )}
           >
             <item.icon className={cn('w-4 h-4', currentPage === item.id ? 'animate-pulse' : '')} />

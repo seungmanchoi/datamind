@@ -92,14 +92,18 @@ export function createSqlTools(dataSource: DataSource) {
   const executeSQL = tool(
     async ({ query }) => {
       logger.log(`🔧 [execute_sql] 호출됨`);
-      logger.log(`   쿼리: ${query.substring(0, 100)}...`);
+      logger.log(`   쿼리 미리보기: ${query.substring(0, 100)}...`);
       try {
-        // SELECT 쿼리만 허용
+        // SELECT 또는 WITH...SELECT 쿼리만 허용
         const trimmedQuery = query.trim().toLowerCase();
-        if (!trimmedQuery.startsWith('select')) {
+        const isSelectQuery = trimmedQuery.startsWith('select');
+        const isWithSelectQuery = trimmedQuery.startsWith('with') && trimmedQuery.includes('select');
+
+        if (!isSelectQuery && !isWithSelectQuery) {
+          logger.warn(`   ❌ SELECT 외 쿼리 거부됨`);
           return JSON.stringify({
             error: true,
-            message: '보안상 SELECT 쿼리만 허용됩니다.',
+            message: '보안상 SELECT 쿼리만 허용됩니다. (WITH...SELECT CTE도 허용)',
           });
         }
 
@@ -116,6 +120,9 @@ export function createSqlTools(dataSource: DataSource) {
         });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        // SQL 실패 시 전체 쿼리 로깅
+        logger.error(`   ❌ SQL 실행 실패: ${errorMessage}`);
+        logger.error(`   📝 실패한 전체 쿼리:\n${query}`);
         return JSON.stringify({
           error: true,
           message: `SQL 실행 실패: ${errorMessage}`,
@@ -140,11 +147,14 @@ export function createSqlTools(dataSource: DataSource) {
       const issues: string[] = [];
       const suggestions: string[] = [];
 
-      const lowerQuery = query.toLowerCase();
+      const lowerQuery = query.trim().toLowerCase();
 
-      // 기본 검증
-      if (!lowerQuery.startsWith('select')) {
-        issues.push('SELECT 쿼리만 허용됩니다.');
+      // 기본 검증 - SELECT 또는 WITH...SELECT 허용
+      const isSelectQuery = lowerQuery.startsWith('select');
+      const isWithSelectQuery = lowerQuery.startsWith('with') && lowerQuery.includes('select');
+
+      if (!isSelectQuery && !isWithSelectQuery) {
+        issues.push('SELECT 쿼리만 허용됩니다. (WITH...SELECT CTE도 허용)');
       }
 
       // 위험한 패턴 검사

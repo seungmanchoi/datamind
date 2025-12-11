@@ -1,17 +1,18 @@
 import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  AlertTriangle,
-  Lightbulb,
-  BarChart3,
-  Percent,
-  Target,
-  Award,
-  AlertCircle,
-  Sparkles,
   Activity,
+  AlertCircle,
+  AlertTriangle,
+  Award,
+  BarChart3,
+  Lightbulb,
+  Minus,
+  Percent,
+  Sparkles,
+  Target,
+  TrendingDown,
+  TrendingUp,
 } from 'lucide-react';
+
 import type { InsightItem, InsightType } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -48,23 +49,14 @@ export default function InsightCard({ insight }: Props) {
   const importance = importanceConfig[insight.importance];
   const Icon = typeConfig.icon;
 
-  const TrendIcon =
-    insight.trend === 'up' ? TrendingUp : insight.trend === 'down' ? TrendingDown : Minus;
+  const TrendIcon = insight.trend === 'up' ? TrendingUp : insight.trend === 'down' ? TrendingDown : Minus;
 
   const trendColor =
-    insight.trend === 'up'
-      ? 'text-emerald-400'
-      : insight.trend === 'down'
-        ? 'text-rose-400'
-        : 'text-slate-400';
+    insight.trend === 'up' ? 'text-emerald-400' : insight.trend === 'down' ? 'text-rose-400' : 'text-slate-400';
 
   return (
     <div
-      className={cn(
-        'glass rounded-xl p-4 border-l-4 transition-all hover:shadow-lg',
-        importance.border,
-        importance.bg
-      )}
+      className={cn('glass rounded-xl p-4 border-l-4 transition-all hover:shadow-lg', importance.border, importance.bg)}
     >
       <div className="flex items-start gap-3">
         {/* 아이콘 */}
@@ -77,11 +69,7 @@ export default function InsightCard({ insight }: Props) {
           <div className="flex items-center justify-between gap-2 mb-1">
             <h4 className="font-semibold text-white truncate">{insight.title}</h4>
             <span
-              className={cn(
-                'text-xs px-2 py-0.5 rounded-full flex-shrink-0',
-                typeConfig.bgColor,
-                typeConfig.color
-              )}
+              className={cn('text-xs px-2 py-0.5 rounded-full flex-shrink-0', typeConfig.bgColor, typeConfig.color)}
             >
               {typeConfig.label}
             </span>
@@ -107,18 +95,14 @@ export default function InsightCard({ insight }: Props) {
                   {insight.changePercent.toFixed(1)}%
                 </span>
               )}
-              {insight.comparedTo && (
-                <span className="text-xs text-slate-500">vs {insight.comparedTo}</span>
-              )}
+              {insight.comparedTo && <span className="text-xs text-slate-500">vs {insight.comparedTo}</span>}
             </div>
           )}
 
           {/* 메타 정보 */}
           <div className="flex items-center gap-3 mt-3 text-xs text-slate-500">
             <span>신뢰도 {Math.round(insight.confidence * 100)}%</span>
-            {insight.actionable && (
-              <span className="text-primary font-medium">실행 가능</span>
-            )}
+            {insight.actionable && <span className="text-primary font-medium">실행 가능</span>}
           </div>
         </div>
       </div>

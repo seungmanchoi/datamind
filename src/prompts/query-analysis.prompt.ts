@@ -54,6 +54,10 @@ export const QUERY_ANALYSIS_PROMPT = `당신은 NDMarket 데이터 분석 AI 어
 5. **그룹화 단위**: "추이", "변화" 등을 물었으나 시간 단위가 명시되지 않음
    - 예: "매출 추이 보여줘" → 일별/주별/월별 단위 필요
 
+6. **정렬 순서**: 순위나 정렬이 필요한 질문에서 순서가 명시되지 않음
+   - 예: "가격순으로 보여줘" → 오름차순/내림차순 필요
+   - 단, "높은 순", "낮은 순" 등이 명시되어 있으면 불필요
+
 # 응답 형식
 다음 JSON 형식으로 응답해주세요:
 
@@ -62,7 +66,7 @@ export const QUERY_ANALYSIS_PROMPT = `당신은 NDMarket 데이터 분석 AI 어
   "reason": "추가 질문이 필요한 이유 (한글로 간단히)",
   "questions": [
     {
-      "type": "period" | "limit" | "filter" | "grouping" | "category",
+      "type": "period" | "limit" | "filter" | "grouping" | "category" | "order",
       "question": "질문 내용 (한글로)",
       "options": ["옵션1", "옵션2", "옵션3"],
       "default": "기본값"
