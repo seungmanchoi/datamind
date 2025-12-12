@@ -59,26 +59,38 @@ export default function ResponseContainer({ response, onFollowUpClick, onRetry }
         />
       )}
 
-      {/* 시각화 섹션 - Primary 차트 */}
-      {visualizations?.primary && (
-        <ChartComponent
-          config={visualizations.primary}
-          reason={visualizations.reason}
-        />
-      )}
-
-      {/* 시각화 섹션 - 추가 차트들 (다중 데이터셋) */}
-      {visualizations?.alternatives && visualizations.alternatives.length > 0 && (
+      {/* 시각화 섹션 - 모든 차트를 세로로 표시 */}
+      {visualizations && (visualizations.primary || (visualizations.alternatives && visualizations.alternatives.length > 0)) && (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white px-2">추가 시각화</h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {visualizations.alternatives.map((altChart) => (
+          {/* 차트 섹션 헤더 (다중 차트인 경우에만 표시) */}
+          {visualizations.alternatives && visualizations.alternatives.length > 0 && (
+            <div className="flex items-center justify-between px-2">
+              <h3 className="text-lg font-semibold text-white">
+                📊 데이터 시각화 ({1 + visualizations.alternatives.length}개)
+              </h3>
+              {visualizations.reason && (
+                <span className="text-sm text-slate-400">{visualizations.reason}</span>
+              )}
+            </div>
+          )}
+
+          {/* Primary 차트 */}
+          {visualizations.primary && (
+            <ChartComponent
+              config={visualizations.primary}
+              reason={!visualizations.alternatives?.length ? visualizations.reason : undefined}
+            />
+          )}
+
+          {/* 추가 차트들 (세로로 쭉 표시) */}
+          {visualizations.alternatives && visualizations.alternatives.length > 0 && (
+            visualizations.alternatives.map((altChart) => (
               <ChartComponent
                 key={altChart.id}
                 config={altChart}
               />
-            ))}
-          </div>
+            ))
+          )}
         </div>
       )}
 

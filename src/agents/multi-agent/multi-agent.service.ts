@@ -1157,15 +1157,102 @@ export class MultiAgentService {
     const sqlData = sqlResults.length > 0 ? sqlResults[0] : currentSqlData;
 
     // 차트 폴백: chart_advisor가 차트를 생성하지 못했지만 SQL 데이터가 있으면 자동 생성
-    if (!visualizations && sqlData && sqlData.rows.length > 0) {
-      this.logger.log(`[${requestId}]   📊 차트 폴백: SQL 데이터로 자동 차트 생성`);
+    // 다중 SQL 결과가 있으면 각각에 대해 차트 생성
+    if (!visualizations && sqlResults.length > 0) {
+      this.logger.log(`[${requestId}]   📊 차트 폴백: ${sqlResults.length}개 SQL 결과로 자동 차트 생성`);
 
-      const rows = sqlData.rows;
+      const generatedCharts: ChartConfig[] = [];
+
+      for (let i = 0; i < sqlResults.length; i++) {
+        const result = sqlResults[i];
+        if (!result.rows || result.rows.length === 0) continue;
+
+        const rows = result.rows;
+        const keys = Object.keys(rows[0]);
+
+        // 라벨 필드 찾기 (문자열 필드 우선)
+        const labelField = keys.find((k) => typeof rows[0][k] === 'string') || keys[0];
+        // 값 필드 찾기 (숫자 필드)
+        const valueField =
+          keys.find((k) => {
+            const val = rows[0][k];
+            if (typeof val === 'number') return true;
+            if (typeof val === 'string') {
+              const parsed = parseFloat(val.replace(/,/g, ''));
+              return !isNaN(parsed) && parsed > 0;
+            }
+            return false;
+          }) || keys[1];
+
+        if (!labelField || !valueField) continue;
+
+        const chartLabels = rows.slice(0, 10).map((r) => String(r[labelField] || ''));
+        const chartData = rows.slice(0, 10).map((r) => {
+          const val = r[valueField];
+          if (typeof val === 'number') return val;
+          const num = parseFloat(String(val).replace(/,/g, ''));
+          return isNaN(num) ? 0 : num;
+        });
+
+        // 차트 유형 결정 (데이터 특성에 따라)
+        let chartType: 'bar' | 'horizontal_bar' | 'pie' | 'line' = 'bar';
+        const hasTimeKeyword =
+          labelField.toLowerCase().includes('date') || labelField.toLowerCase().includes('month');
+        if (hasTimeKeyword) {
+          chartType = 'line';
+        } else if (rows.length > 7) {
+          chartType = 'horizontal_bar';
+        } else if (rows.length <= 5) {
+          chartType = 'pie';
+        }
+
+        // 차트 제목 결정 (결과 라벨 사용)
+        const chartTitle = result.label || result.description || `결과 ${i + 1}`;
+
+        const chart: ChartConfig = {
+          id: `fallback_chart_${i}_${Date.now()}`,
+          type: chartType,
+          title: chartTitle,
+          data: {
+            labels: chartLabels,
+            datasets: [
+              {
+                label: valueField,
+                data: chartData,
+                backgroundColor:
+                  chartType === 'pie' ? ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'] : '#3B82F6',
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: chartType === 'horizontal_bar' ? 'y' : 'x',
+          },
+        };
+
+        generatedCharts.push(chart);
+        this.logger.log(`[${requestId}]   ✅ 차트 ${i + 1} 생성 완료 - type: ${chartType}, title: ${chartTitle}`);
+      }
+
+      // 첫 번째 차트를 primary로, 나머지를 alternatives로
+      if (generatedCharts.length > 0) {
+        visualizations = {
+          recommended: true,
+          reason: `${generatedCharts.length}개 데이터셋 자동 시각화`,
+          primary: generatedCharts[0],
+          alternatives: generatedCharts.slice(1),
+          extras: [],
+        };
+      }
+    } else if (!visualizations && currentSqlData && currentSqlData.rows.length > 0) {
+      // 단일 SQL 결과만 있는 경우 (기존 로직)
+      this.logger.log(`[${requestId}]   📊 차트 폴백: 단일 SQL 데이터로 자동 차트 생성`);
+
+      const rows = currentSqlData.rows;
       const keys = Object.keys(rows[0]);
 
-      // 라벨 필드 찾기 (문자열 필드 우선)
       const labelField = keys.find((k) => typeof rows[0][k] === 'string') || keys[0];
-      // 값 필드 찾기 (숫자 필드)
       const valueField =
         keys.find((k) => {
           const val = rows[0][k];
@@ -1186,9 +1273,9 @@ export class MultiAgentService {
           return isNaN(num) ? 0 : num;
         });
 
-        // 차트 유형 결정 (데이터 특성에 따라)
         let chartType: 'bar' | 'horizontal_bar' | 'pie' | 'line' = 'bar';
-        const hasTimeKeyword = labelField.toLowerCase().includes('date') || labelField.toLowerCase().includes('month');
+        const hasTimeKeyword =
+          labelField.toLowerCase().includes('date') || labelField.toLowerCase().includes('month');
         if (hasTimeKeyword) {
           chartType = 'line';
         } else if (rows.length > 7) {
@@ -1211,9 +1298,7 @@ export class MultiAgentService {
                   label: valueField,
                   data: chartData,
                   backgroundColor:
-                    chartType === 'pie'
-                      ? ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
-                      : '#3B82F6',
+                    chartType === 'pie' ? ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'] : '#3B82F6',
                 },
               ],
             },
