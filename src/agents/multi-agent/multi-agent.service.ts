@@ -370,6 +370,8 @@ export class MultiAgentService {
         { recursionLimit: 50 }, // ReAct 에이전트 도구 호출을 위해 충분한 한도 설정
       );
 
+      // 모든 노드의 메시지를 누적 수집
+      const allCollectedMessages: (HumanMessage | AIMessage)[] = [];
       let finalResult: { messages: (HumanMessage | AIMessage)[] } = { messages: [] };
 
       for await (const chunk of stream) {
@@ -588,9 +590,12 @@ export class MultiAgentService {
             previousStepEndTime = stepEndTime;
           }
 
-          // 최종 결과 업데이트
-          if (nodeOutput?.messages) {
-            finalResult = nodeOutput;
+          // 노드의 메시지를 누적 수집 (모든 메시지를 buildResponse에 전달하기 위해)
+          if (nodeOutput?.messages && Array.isArray(nodeOutput.messages)) {
+            for (const msg of nodeOutput.messages) {
+              // AIMessage나 HumanMessage 또는 ToolMessage 등 모든 메시지 누적
+              allCollectedMessages.push(msg);
+            }
           }
         }
 
@@ -607,7 +612,11 @@ export class MultiAgentService {
       this.logger.log(`[${requestId}]   총 Step: ${stepCount}`);
       this.logger.log(`[${requestId}]   사용된 에이전트: ${agentsInvoked.join(', ')}`);
       this.logger.log(`[${requestId}]   처리 시간: ${processingTime}ms`);
+      this.logger.log(`[${requestId}]   누적 메시지 수: ${allCollectedMessages.length}`);
       this.logger.log(`${'='.repeat(60)}\n`);
+
+      // 누적된 모든 메시지를 finalResult에 할당
+      finalResult = { messages: allCollectedMessages };
 
       // 결과 파싱 및 응답 구성
       return this.buildResponse(requestId, query, finalResult, processingTime, workflowSteps, queryHistory);
@@ -813,6 +822,83 @@ export class MultiAgentService {
                 rows,
                 rowCount: rows.length,
                 executionTime: parsed.executionTime || 0,
+              };
+            }
+          }
+        } catch {
+          // JSON 파싱 실패
+        }
+      }
+
+      // ToolMessage에서 Chart 도구 결과 추출 (prepareChartData 결과)
+      if (rawContent.includes('"datasets"') && rawContent.includes('"labels"')) {
+        try {
+          const parsed = JSON.parse(rawContent);
+          // ChartConfig 형식인지 확인
+          if (parsed.data?.datasets && parsed.data?.labels && parsed.type) {
+            this.logger.log(`[${requestId}]   ✅ 차트 도구 결과 발견 - type: ${parsed.type}, title: ${parsed.title}`);
+            visualizations = {
+              recommended: true,
+              reason: '데이터 시각화',
+              primary: parsed,
+              alternatives: [],
+              extras: [],
+            };
+          }
+        } catch {
+          // JSON 파싱 실패
+        }
+      }
+
+      // ToolMessage에서 recommend_chart 도구 결과 추출
+      if (rawContent.includes('"recommended"') && rawContent.includes('"primaryType"')) {
+        try {
+          const parsed = JSON.parse(rawContent);
+          if (parsed.recommended && parsed.primaryType) {
+            this.logger.log(`[${requestId}]   ✅ 차트 추천 도구 결과 발견 - type: ${parsed.primaryType}`);
+            // 차트 데이터 자동 생성 (SQL 결과가 있는 경우)
+            const fallbackSqlData = sqlResults.length > 0 ? sqlResults[0] : currentSqlData;
+            if (fallbackSqlData && fallbackSqlData.rows.length > 0) {
+              const rows = fallbackSqlData.rows;
+              const keys = Object.keys(rows[0]);
+              const labelField = keys[0];
+              const valueField = keys.find((k) => typeof rows[0][k] === 'number') || keys[1];
+
+              const chartLabels = rows.slice(0, 10).map((r) => String(r[labelField] || ''));
+              const chartData = rows.slice(0, 10).map((r) => {
+                const val = r[valueField];
+                if (typeof val === 'number') return val;
+                const num = parseFloat(String(val).replace(/,/g, ''));
+                return isNaN(num) ? 0 : num;
+              });
+
+              visualizations = {
+                recommended: true,
+                reason: parsed.reason || '데이터 시각화 추천',
+                primary: {
+                  id: `chart_${Date.now()}`,
+                  type: parsed.primaryType,
+                  title: query,
+                  data: {
+                    labels: chartLabels,
+                    datasets: [
+                      {
+                        label: valueField,
+                        data: chartData,
+                        backgroundColor: '#3B82F6',
+                      },
+                    ],
+                  },
+                  options: { responsive: true },
+                },
+                alternatives: (parsed.alternatives || []).map((alt: string, idx: number) => ({
+                  id: `alt_${alt}_${idx}`,
+                  type: alt,
+                  title: `${query} (${alt})`,
+                  data: { labels: chartLabels, datasets: [{ label: valueField, data: chartData }] },
+                  options: { responsive: true },
+                })),
+                extras: [],
               };
             }
           }
@@ -1069,6 +1155,81 @@ export class MultiAgentService {
 
     // SQL 데이터 참조 (첫 번째 결과 또는 currentSqlData)
     const sqlData = sqlResults.length > 0 ? sqlResults[0] : currentSqlData;
+
+    // 차트 폴백: chart_advisor가 차트를 생성하지 못했지만 SQL 데이터가 있으면 자동 생성
+    if (!visualizations && sqlData && sqlData.rows.length > 0) {
+      this.logger.log(`[${requestId}]   📊 차트 폴백: SQL 데이터로 자동 차트 생성`);
+
+      const rows = sqlData.rows;
+      const keys = Object.keys(rows[0]);
+
+      // 라벨 필드 찾기 (문자열 필드 우선)
+      const labelField = keys.find((k) => typeof rows[0][k] === 'string') || keys[0];
+      // 값 필드 찾기 (숫자 필드)
+      const valueField =
+        keys.find((k) => {
+          const val = rows[0][k];
+          if (typeof val === 'number') return true;
+          if (typeof val === 'string') {
+            const parsed = parseFloat(val.replace(/,/g, ''));
+            return !isNaN(parsed) && parsed > 0;
+          }
+          return false;
+        }) || keys[1];
+
+      if (labelField && valueField) {
+        const chartLabels = rows.slice(0, 10).map((r) => String(r[labelField] || ''));
+        const chartData = rows.slice(0, 10).map((r) => {
+          const val = r[valueField];
+          if (typeof val === 'number') return val;
+          const num = parseFloat(String(val).replace(/,/g, ''));
+          return isNaN(num) ? 0 : num;
+        });
+
+        // 차트 유형 결정 (데이터 특성에 따라)
+        let chartType: 'bar' | 'horizontal_bar' | 'pie' | 'line' = 'bar';
+        const hasTimeKeyword = labelField.toLowerCase().includes('date') || labelField.toLowerCase().includes('month');
+        if (hasTimeKeyword) {
+          chartType = 'line';
+        } else if (rows.length > 7) {
+          chartType = 'horizontal_bar';
+        } else if (rows.length <= 5) {
+          chartType = 'pie';
+        }
+
+        visualizations = {
+          recommended: true,
+          reason: '데이터 기반 자동 시각화',
+          primary: {
+            id: `fallback_chart_${Date.now()}`,
+            type: chartType,
+            title: query,
+            data: {
+              labels: chartLabels,
+              datasets: [
+                {
+                  label: valueField,
+                  data: chartData,
+                  backgroundColor:
+                    chartType === 'pie'
+                      ? ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
+                      : '#3B82F6',
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              indexAxis: chartType === 'horizontal_bar' ? 'y' : 'x',
+            },
+          },
+          alternatives: [],
+          extras: [],
+        };
+
+        this.logger.log(`[${requestId}]   ✅ 폴백 차트 생성 완료 - type: ${chartType}`);
+      }
+    }
 
     // responseType 결정
     if (visualizations && insights) {

@@ -1,4 +1,4 @@
-export { SUPERVISOR_PROMPT, SUPERVISOR_ROUTING_PROMPT } from './supervisor.prompt';
+export { SUPERVISOR_SYSTEM_PROMPT, SUPERVISOR_ROUTING_PROMPT } from './supervisor.prompt';
 export { SQL_EXPERT_PROMPT, SQL_EXPERT_FEW_SHOT_EXAMPLES } from './sql-expert.prompt';
 export {
   INSIGHT_ANALYST_PROMPT,

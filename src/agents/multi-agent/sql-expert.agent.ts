@@ -21,10 +21,10 @@ export interface SqlExpertAgentOptions {
  */
 export function createSqlExpertAgent(options: SqlExpertAgentOptions) {
   const { model, dataSource, ragService } = options;
-  const { executeSQL } = createSqlTools(dataSource);
+  const { executeSQL, getSchema } = createSqlTools(dataSource);
 
   // 도구 목록 구성 (다양한 스키마를 위해 StructuredToolInterface 타입 사용)
-  const tools: StructuredToolInterface[] = [executeSQL];
+  const tools: StructuredToolInterface[] = [getSchema, executeSQL];
 
   // RAG 서비스가 있으면 RAG 도구 추가
   if (ragService) {
