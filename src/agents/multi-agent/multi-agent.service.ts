@@ -33,6 +33,7 @@ const AGENT_DISPLAY_NAMES: Record<string, string> = {
   insight_analyst: '인사이트 분석가',
   chart_advisor: '차트 어드바이저',
   followup_agent: '후속 질문 생성',
+  parallel_analysis: '병렬 분석 (인사이트 + 차트)',
 };
 
 /**
@@ -260,6 +261,31 @@ function generateAgentSummary(
         const firstQuestion = questionMatches[0].match(/"text"\s*:\s*"([^"]+)"/);
         if (firstQuestion) {
           details.push({ type: 'question', label: '첫 번째 질문', value: firstQuestion[1] });
+        }
+      }
+      break;
+    }
+
+    case 'parallel_analysis': {
+      summary = '인사이트 분석 + 차트 생성 병렬 실행';
+      details.push({ type: 'insight', label: '병렬 실행', value: 'insight_analyst + chart_advisor' });
+      // 인사이트 키워드 추출
+      const insightKeywords = ['매출', '성장', '감소', '증가', '트렌드', '패턴', '분석', '비교', '상위', '하위'];
+      const foundKeywords = insightKeywords.filter((kw) => content.includes(kw));
+      if (foundKeywords.length > 0) {
+        details.push({ type: 'insight', label: '분석 주제', value: foundKeywords.slice(0, 3).join(', ') });
+      }
+      // 차트 유형 추출
+      const chartTypes: Record<string, string> = {
+        horizontal_bar: '가로 막대 차트',
+        bar: '막대 차트',
+        line: '라인 차트',
+        pie: '파이 차트',
+      };
+      for (const [type, name] of Object.entries(chartTypes)) {
+        if (content.includes(type)) {
+          details.push({ type: 'chart', label: '생성된 차트', value: name });
+          break;
         }
       }
       break;
@@ -1282,8 +1308,7 @@ export class MultiAgentService {
 
         // 차트 유형 결정 (데이터 특성에 따라)
         let chartType: 'bar' | 'horizontal_bar' | 'pie' | 'line' = 'bar';
-        const hasTimeKeyword =
-          labelField.toLowerCase().includes('date') || labelField.toLowerCase().includes('month');
+        const hasTimeKeyword = labelField.toLowerCase().includes('date') || labelField.toLowerCase().includes('month');
         if (hasTimeKeyword) {
           chartType = 'line';
         } else if (rows.length > 7) {
@@ -1360,8 +1385,7 @@ export class MultiAgentService {
         });
 
         let chartType: 'bar' | 'horizontal_bar' | 'pie' | 'line' = 'bar';
-        const hasTimeKeyword =
-          labelField.toLowerCase().includes('date') || labelField.toLowerCase().includes('month');
+        const hasTimeKeyword = labelField.toLowerCase().includes('date') || labelField.toLowerCase().includes('month');
         if (hasTimeKeyword) {
           chartType = 'line';
         } else if (rows.length > 7) {
@@ -1402,6 +1426,128 @@ export class MultiAgentService {
         };
 
         this.logger.log(`[${requestId}]   ✅ 폴백 차트 생성 완료 - type: ${chartType}, title: ${chartTitle}`);
+      }
+    }
+
+    // 인사이트 폴백: insight_analyst가 인사이트를 생성하지 못했지만 SQL 데이터가 있으면 자동 생성
+    if (!insights && sqlResults.length > 0) {
+      this.logger.log(`[${requestId}]   📝 인사이트 폴백: ${sqlResults.length}개 SQL 결과로 자동 인사이트 생성`);
+
+      const insightItems: InsightItem[] = [];
+      const totalRows = sqlResults.reduce((sum, r) => sum + r.rowCount, 0);
+
+      // 각 SQL 결과에서 인사이트 추출
+      for (let i = 0; i < sqlResults.length; i++) {
+        const result = sqlResults[i];
+        if (!result.rows || result.rows.length === 0) continue;
+
+        const rows = result.rows;
+        const keys = Object.keys(rows[0]);
+
+        // 숫자 필드 찾기
+        const numericField = keys.find((k) => {
+          const val = rows[0][k];
+          if (typeof val === 'number') return true;
+          if (typeof val === 'string') {
+            const parsed = parseFloat(val.replace(/,/g, ''));
+            return !isNaN(parsed) && parsed > 0;
+          }
+          return false;
+        });
+
+        // 라벨 필드 찾기
+        const labelField = keys.find((k) => typeof rows[0][k] === 'string') || keys[0];
+
+        if (numericField && labelField) {
+          // 숫자 값 추출
+          const values = rows.map((r) => {
+            const val = r[numericField];
+            if (typeof val === 'number') return val;
+            const num = parseFloat(String(val).replace(/,/g, ''));
+            return isNaN(num) ? 0 : num;
+          });
+
+          // 총합 계산
+          const total = values.reduce((sum, v) => sum + v, 0);
+          const avg = total / values.length;
+
+          // TOP N 집중도 계산
+          const sortedValues = [...values].sort((a, b) => b - a);
+          const top3Sum = sortedValues.slice(0, 3).reduce((sum, v) => sum + v, 0);
+          const top3Ratio = total > 0 ? Math.round((top3Sum / total) * 100) : 0;
+
+          // 최대값과 2위 비교
+          const maxValue = sortedValues[0] || 0;
+          const secondValue = sortedValues[1] || 0;
+          const maxToSecondRatio = secondValue > 0 ? (maxValue / secondValue).toFixed(1) : 'N/A';
+
+          // 필드명 한글화
+          const labelName = FIELD_NAME_MAP[labelField.toLowerCase()] || FIELD_NAME_MAP[labelField] || labelField;
+          const valueName = FIELD_NAME_MAP[numericField.toLowerCase()] || FIELD_NAME_MAP[numericField] || numericField;
+
+          // 순위 인사이트
+          if (rows.length >= 3) {
+            const topItem = rows[0]?.[labelField] || '1위';
+            insightItems.push({
+              id: `fallback_ranking_${i}_${Date.now()}`,
+              type: 'ranking',
+              icon: '🏆',
+              title: `${labelName}별 ${valueName} 집중도`,
+              content: `상위 3개가 전체의 ${top3Ratio}% 차지. 1위 "${topItem}"이(가) 2위 대비 ${maxToSecondRatio}배`,
+              importance: top3Ratio > 50 ? 'high' : 'medium',
+              confidence: 0.85,
+              actionable: false,
+            });
+          }
+
+          // 총합/평균 인사이트
+          const formattedTotal = total >= 10000 ? `${(total / 10000).toFixed(1)}만` : total.toLocaleString();
+          insightItems.push({
+            id: `fallback_comparison_${i}_${Date.now()}`,
+            type: 'comparison',
+            icon: '📊',
+            title: `${valueName} 현황`,
+            content: `총 ${formattedTotal}${valueName.includes('매출') || valueName.includes('금액') ? '원' : ''}, 평균 ${avg.toLocaleString()}${valueName.includes('매출') || valueName.includes('금액') ? '원' : ''} (${rows.length}개 항목)`,
+            importance: 'medium',
+            confidence: 0.9,
+            actionable: false,
+          });
+        }
+      }
+
+      // 데이터셋 수가 2개 이상이면 다중 분석 인사이트 추가
+      if (sqlResults.length >= 2) {
+        insightItems.push({
+          id: `fallback_recommendation_${Date.now()}`,
+          type: 'recommendation',
+          icon: '💡',
+          title: '다중 관점 분석',
+          content: `${sqlResults.length}개 데이터셋으로 다각도 분석 수행됨. 각 결과를 비교하여 패턴을 파악하세요.`,
+          importance: 'medium',
+          confidence: 0.8,
+          actionable: true,
+        });
+      }
+
+      // 인사이트가 생성되었으면 설정
+      if (insightItems.length > 0) {
+        // summary 생성
+        const summaryParts: string[] = [];
+        summaryParts.push(`총 ${totalRows}개 데이터 분석 완료.`);
+        if (insightItems.length > 0) {
+          const rankingItem = insightItems.find((i) => i.type === 'ranking');
+          if (rankingItem) {
+            summaryParts.push(rankingItem.content.split('.')[0] + '.');
+          }
+        }
+
+        insights = {
+          summary: summaryParts.join(' '),
+          items: insightItems.slice(0, 5), // 최대 5개
+          overallConfidence: 0.8,
+        };
+
+        this.logger.log(`[${requestId}]   ✅ 폴백 인사이트 생성 완료 - ${insightItems.length}개 항목`);
       }
     }
 
