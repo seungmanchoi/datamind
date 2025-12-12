@@ -1,6 +1,8 @@
 import type { MultiAgentResponse } from '@/lib/api';
 
 import DataTable from '../data/DataTable';
+import ExportButtons from '../data/ExportButtons';
+import MultiDataTable from '../data/MultiDataTable';
 import FollowUpQuestions from '../followup/FollowUpQuestions';
 import InsightsList from '../insights/InsightsList';
 import ChartComponent from '../visualizations/ChartComponent';
@@ -41,6 +43,13 @@ export default function ResponseContainer({ response, onFollowUpClick, onRetry }
       {/* SQL 쿼리 히스토리 */}
       {workflow && workflow.queryHistory.length > 0 && <SqlQueryHistory queries={workflow.queryHistory} />}
 
+      {/* 내보내기 버튼 (엑셀, PDF) */}
+      {(data || insights) && (
+        <div className="glass rounded-2xl p-4">
+          <ExportButtons title={meta.query} data={data} insights={insights} />
+        </div>
+      )}
+
       {/* 인사이트 섹션 */}
       {insights && (
         <InsightsList
@@ -50,17 +59,34 @@ export default function ResponseContainer({ response, onFollowUpClick, onRetry }
         />
       )}
 
-      {/* 시각화 섹션 */}
+      {/* 시각화 섹션 - Primary 차트 */}
       {visualizations?.primary && (
         <ChartComponent
           config={visualizations.primary}
           reason={visualizations.reason}
-          alternatives={visualizations.alternatives}
         />
       )}
 
-      {/* SQL 데이터 테이블 */}
-      {data?.sql && (
+      {/* 시각화 섹션 - 추가 차트들 (다중 데이터셋) */}
+      {visualizations?.alternatives && visualizations.alternatives.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-white px-2">추가 시각화</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {visualizations.alternatives.map((altChart) => (
+              <ChartComponent
+                key={altChart.id}
+                config={altChart}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* SQL 데이터 테이블 - 다중 쿼리 결과 */}
+      {data?.multiSql && <MultiDataTable multiSql={data.multiSql} title={meta.query} />}
+
+      {/* SQL 데이터 테이블 - 단일 쿼리 결과 (multiSql이 없을 때만) */}
+      {!data?.multiSql && data?.sql && (
         <DataTable
           columns={data.sql.columns}
           rows={data.sql.rows}

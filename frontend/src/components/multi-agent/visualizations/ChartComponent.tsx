@@ -1,4 +1,14 @@
-import { BarChart3, Info, LineChart as LineChartIcon, PieChart as PieChartIcon } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  BarChart3,
+  CreditCard,
+  Info,
+  LineChart as LineChartIcon,
+  Minus,
+  PieChart as PieChartIcon,
+  Table as TableIcon,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import {
   Area,
@@ -20,6 +30,17 @@ import {
 
 import type { ChartConfig, ChartType } from '@/lib/api';
 import { cn } from '@/lib/utils';
+
+// Metric Card 데이터 타입
+interface MetricCardData {
+  title?: string;
+  value?: number;
+  formattedValue?: string;
+  format?: string;
+  change?: number;
+  changeType?: 'increase' | 'decrease' | 'neutral' | null;
+  icon?: string;
+}
 
 interface Props {
   config: ChartConfig;
@@ -45,6 +66,8 @@ const chartTypeIcons: Record<string, React.ElementType> = {
   area: LineChartIcon,
   pie: PieChartIcon,
   donut: PieChartIcon,
+  metric_card: CreditCard,
+  table: TableIcon,
 };
 
 export default function ChartComponent({ config, reason, alternatives }: Props) {
@@ -209,6 +232,113 @@ export default function ChartComponent({ config, reason, alternatives }: Props) 
             </PieChart>
           </ResponsiveContainer>
         );
+
+      case 'metric_card': {
+        // metric_card 데이터 처리 - config.data가 배열이거나 단일 객체일 수 있음
+        const metricData = config.data as unknown as MetricCardData | MetricCardData[];
+        const metrics = Array.isArray(metricData) ? metricData : [metricData];
+
+        // 데이터가 없거나 유효하지 않으면 기본 카드 표시
+        if (!metrics.length || !metrics[0]?.title) {
+          return (
+            <div className="flex items-center justify-center h-64 text-slate-400">
+              <div className="text-center">
+                <CreditCard className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>메트릭 데이터가 없습니다</p>
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {metrics.map((metric, index) => {
+              const ChangeIcon =
+                metric.changeType === 'increase'
+                  ? ArrowUp
+                  : metric.changeType === 'decrease'
+                    ? ArrowDown
+                    : Minus;
+              const changeColor =
+                metric.changeType === 'increase'
+                  ? 'text-emerald-400'
+                  : metric.changeType === 'decrease'
+                    ? 'text-rose-400'
+                    : 'text-slate-400';
+
+              return (
+                <div
+                  key={index}
+                  className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-xl p-6 border border-white/10"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-2xl">{metric.icon || '📊'}</span>
+                    {metric.change != null && (
+                      <div className={cn('flex items-center gap-1 text-sm', changeColor)}>
+                        <ChangeIcon className="w-4 h-4" />
+                        <span>{Math.abs(metric.change)}%</span>
+                      </div>
+                    )}
+                  </div>
+                  <h4 className="text-sm text-slate-400 mb-1">{metric.title}</h4>
+                  <p className="text-2xl font-bold text-white">
+                    {metric.formattedValue ||
+                      (metric.value != null ? metric.value.toLocaleString() : '-')}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
+
+      case 'table': {
+        // 테이블 차트 - chartData 사용
+        if (!chartData.length) {
+          return (
+            <div className="flex items-center justify-center h-64 text-slate-400">
+              <div className="text-center">
+                <TableIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>테이블 데이터가 없습니다</p>
+              </div>
+            </div>
+          );
+        }
+
+        const columns = Object.keys(chartData[0] || {});
+
+        return (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10">
+                  {columns.map((col) => (
+                    <th key={col} className="px-4 py-3 text-left text-slate-400 font-medium">
+                      {col}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {chartData.map((row, rowIndex) => (
+                  <tr
+                    key={rowIndex}
+                    className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                  >
+                    {columns.map((col) => (
+                      <td key={col} className="px-4 py-3 text-white">
+                        {typeof row[col] === 'number'
+                          ? (row[col] as number).toLocaleString()
+                          : String(row[col] ?? '-')}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
 
       default:
         return (

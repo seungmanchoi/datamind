@@ -90,8 +90,8 @@ export function createSqlTools(dataSource: DataSource) {
    * SQL 쿼리 실행 도구
    */
   const executeSQL = tool(
-    async ({ query }) => {
-      logger.log(`🔧 [execute_sql] 호출됨`);
+    async ({ query, label, description }) => {
+      logger.log(`🔧 [execute_sql] 호출됨 - 라벨: ${label || '기본'}`);
       logger.log(`   쿼리 미리보기: ${query.substring(0, 100)}...`);
       try {
         // SELECT 또는 WITH...SELECT 쿼리만 허용
@@ -104,6 +104,7 @@ export function createSqlTools(dataSource: DataSource) {
           return JSON.stringify({
             error: true,
             message: '보안상 SELECT 쿼리만 허용됩니다. (WITH...SELECT CTE도 허용)',
+            label: label || '기본',
           });
         }
 
@@ -111,29 +112,38 @@ export function createSqlTools(dataSource: DataSource) {
         const results = await dataSource.query(query);
         const executionTime = Date.now() - startTime;
 
-        logger.log(`   ✅ 실행 완료 - ${results.length}개 행, ${executionTime}ms`);
+        logger.log(`   ✅ 실행 완료 [${label || '기본'}] - ${results.length}개 행, ${executionTime}ms`);
         return JSON.stringify({
           success: true,
           data: results,
           rowCount: results.length,
           executionTime,
+          label: label || '기본',
+          description: description || '',
         });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         // SQL 실패 시 전체 쿼리 로깅
-        logger.error(`   ❌ SQL 실행 실패: ${errorMessage}`);
+        logger.error(`   ❌ SQL 실행 실패 [${label || '기본'}]: ${errorMessage}`);
         logger.error(`   📝 실패한 전체 쿼리:\n${query}`);
         return JSON.stringify({
           error: true,
           message: `SQL 실행 실패: ${errorMessage}`,
+          label: label || '기본',
         });
       }
     },
     {
       name: 'execute_sql',
-      description: 'MySQL 데이터베이스에 SELECT 쿼리를 실행하고 결과를 반환합니다.',
+      description:
+        'MySQL 데이터베이스에 SELECT 쿼리를 실행하고 결과를 반환합니다. 여러 번 호출하여 다양한 데이터를 수집하세요!',
       schema: z.object({
         query: z.string().describe('실행할 SQL SELECT 쿼리'),
+        label: z
+          .string()
+          .optional()
+          .describe('쿼리 라벨 (예: "메인_매출", "비교_전월", "추세_일별") - 엑셀 시트명으로 사용됨'),
+        description: z.string().optional().describe('쿼리에 대한 간단한 설명'),
       }),
     },
   );

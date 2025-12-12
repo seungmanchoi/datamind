@@ -74,7 +74,9 @@
       "Bash(rm:*)",
       "Bash(yarn run lint:*)",
       "Bash(kill:*)",
-      "Bash(timeout 20 pnpm run start:dev:*)"
+      "Bash(timeout 20 pnpm run start:dev:*)",
+      "Bash(node scripts/sync-sql-examples.js:*)",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": []

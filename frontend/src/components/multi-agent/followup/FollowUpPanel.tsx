@@ -11,7 +11,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import type { FollowUpQuestion } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -144,16 +144,19 @@ export default function FollowUpPanel({
   };
 
   // 현재 질문과 히스토리 합치기 (중복 제거)
-  const allQuestions = [...currentQuestions, ...historyQuestions].reduce((acc, q) => {
-    if (!acc.find((existing) => existing.text === q.text)) {
-      acc.push({
-        ...q,
-        source: (q as ExtendedFollowUpQuestion).source || 'ai',
-        timestamp: (q as ExtendedFollowUpQuestion).timestamp || Date.now(),
-      } as ExtendedFollowUpQuestion);
-    }
-    return acc;
-  }, [] as ExtendedFollowUpQuestion[]);
+  // timestamp가 없는 경우 0을 기본값으로 사용 (정렬 목적으로만 사용)
+  const allQuestions = useMemo(() => {
+    return [...currentQuestions, ...historyQuestions].reduce((acc, q) => {
+      if (!acc.find((existing) => existing.text === q.text)) {
+        acc.push({
+          ...q,
+          source: (q as ExtendedFollowUpQuestion).source || 'ai',
+          timestamp: (q as ExtendedFollowUpQuestion).timestamp || 0,
+        } as ExtendedFollowUpQuestion);
+      }
+      return acc;
+    }, [] as ExtendedFollowUpQuestion[]);
+  }, [currentQuestions, historyQuestions]);
 
   const hasQuestions = currentQuestions.length > 0 || historyQuestions.length > 0;
 

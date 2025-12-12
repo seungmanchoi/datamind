@@ -132,6 +132,22 @@ export interface SqlDataSection {
   rows: Record<string, unknown>[];
   rowCount: number;
   executionTime: number;
+  /** 쿼리 라벨 (다중 쿼리 시 시트명으로 사용) */
+  label?: string;
+  /** 쿼리 설명 */
+  description?: string;
+}
+
+/**
+ * 다중 SQL 데이터셋 (여러 쿼리 결과)
+ */
+export interface MultiSqlDataSection {
+  /** 메인 쿼리 결과 (기본 표시용) */
+  primary: SqlDataSection;
+  /** 추가 쿼리 결과들 (비교, 추세, 분포 등) */
+  additional?: SqlDataSection[];
+  /** 전체 쿼리 수 */
+  totalQueries: number;
 }
 
 export interface SearchResult {
@@ -150,6 +166,8 @@ export interface SearchDataSection {
 
 export interface DataSection {
   sql?: SqlDataSection;
+  /** 다중 SQL 쿼리 결과 (여러 쿼리 실행 시) */
+  multiSql?: MultiSqlDataSection;
   search?: SearchDataSection;
   aggregations?: Record<string, number | string>;
 }
@@ -217,6 +235,12 @@ export interface QueryHistoryItem {
   rowCount: number;
   success: boolean;
   error?: string;
+  /** 쿼리 라벨 (ex: "상품별 매출") */
+  label?: string;
+  /** 쿼리 설명 (ex: "상품별 총 매출을 조회합니다") */
+  description?: string;
+  /** 결과 설명 */
+  explanation?: string;
   /** RAG를 통해 검색된 few-shot SQL 예제들 */
   fewShotExamples?: FewShotExample[];
 }

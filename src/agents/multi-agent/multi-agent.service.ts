@@ -3,7 +3,7 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 
-import { createBedrockChatModel } from '@/agents/config/langchain.config';
+import { createBedrockChatModel, createBedrockFastModel } from '@/agents/config/langchain.config';
 import { BedrockService } from '@/common/bedrock.service';
 import {
   ChartConfig,
@@ -194,6 +194,7 @@ function generateAgentSummary(
 export class MultiAgentService {
   private readonly logger = new Logger(MultiAgentService.name);
   private readonly chatModel;
+  private readonly fastModel;
   private readonly workflow;
 
   constructor(
@@ -202,14 +203,21 @@ export class MultiAgentService {
     @Optional() private readonly ragService?: RagService,
     @Optional() private readonly bedrockService?: BedrockService,
   ) {
+    // Sonnet 모델: SQL Expert, Insight Analyst, Supervisor (복잡한 추론)
     this.chatModel = createBedrockChatModel();
+    // Haiku 모델: Chart Advisor, Followup Agent, Search Expert (빠른 응답)
+    this.fastModel = createBedrockFastModel();
+
     this.workflow = createMultiAgentWorkflow({
       model: this.chatModel,
+      fastModel: this.fastModel,
       dataSource,
       searchService,
       ragService,
     });
+
     this.logger.log('MultiAgentService initialized with Supervisor workflow (5 agents)');
+    this.logger.log('모델 전략: Sonnet(SQL/Insight), Haiku(Chart/Followup/Search)');
     if (ragService) {
       this.logger.log('RAG 서비스 연동 활성화 - SQL Expert가 유사 쿼리 예제를 참조합니다');
     }
@@ -635,8 +643,20 @@ export class MultiAgentService {
 
     this.logger.log(`[${requestId}] 📦 응답 파싱 시작 - 메시지 수: ${messages.length}`);
 
-    // SQL 결과 추출
-    let sqlData:
+    // SQL 결과 추출 (다중 결과 지원)
+    const sqlResults: Array<{
+      query: string;
+      explanation: string;
+      label?: string;
+      description?: string;
+      columns: ColumnDefinition[];
+      rows: Record<string, unknown>[];
+      rowCount: number;
+      executionTime: number;
+    }> = [];
+
+    // 현재 처리 중인 SQL 데이터 (임시)
+    let currentSqlData:
       | {
           query: string;
           explanation: string;
@@ -696,10 +716,36 @@ export class MultiAgentService {
       return String(content);
     };
 
-    // 인사이트 텍스트 포맷팅 함수 (번호 목록을 개행으로 분리)
+    // 인사이트 텍스트 포맷팅 함수 (번호 목록을 개행으로 분리, 내부 메시지 제거)
     const formatInsightText = (text: string): string => {
+      // 내부 시스템 메시지 패턴 제거
+      const internalPatterns = [
+        // 에이전트 전환 메시지
+        /Transferring (back )?to supervisor/gi,
+        /Successfully transferred( back)? to \w+/gi,
+        /transferred back to \w+/gi,
+        /__end__/g,
+        // AI 메타 코멘트 및 오류 메시지
+        /I apologize for the error[^.]*\./gi,
+        /It seems (the |that )?['"]?\w+['"]? (function|tool) is not available[^.]*\./gi,
+        /the ['"]?\w+['"]? (function|tool) is not available[^.]*\./gi,
+        /function is not available[^.]*\./gi,
+        /tool is not available[^.]*\./gi,
+        /I (cannot|can't|couldn't) (find|locate|access) the[^.]*\./gi,
+        /Let me try[^.]*\./gi,
+        /I'll try[^.]*\./gi,
+        // 도구 호출 관련 메타 메시지
+        /transfer_back_to_supervisor/gi,
+        /transfer_to_supervisor/gi,
+      ];
+
+      let cleanText = text;
+      for (const pattern of internalPatterns) {
+        cleanText = cleanText.replace(pattern, '');
+      }
+
       return (
-        text
+        cleanText
           // 번호 목록을 개행으로 분리 (1. 2. 3. 등)
           .replace(/(\d+)\.\s+/g, '\n$1. ')
           // 첫 번째 개행 제거
@@ -734,7 +780,9 @@ export class MultiAgentService {
         try {
           const parsed = JSON.parse(rawContent);
           if (parsed.success && parsed.data && Array.isArray(parsed.data)) {
-            this.logger.log(`[${requestId}]   ✅ SQL 결과 발견 - ${parsed.data.length}개 행`);
+            this.logger.log(
+              `[${requestId}]   ✅ SQL 결과 발견 - ${parsed.data.length}개 행 (총 ${sqlResults.length + 1}번째 결과)`,
+            );
 
             const rows = parsed.data;
             if (rows.length > 0) {
@@ -744,8 +792,22 @@ export class MultiAgentService {
                 label: key,
               })) as ColumnDefinition[];
 
-              sqlData = {
-                query: '',
+              // 결과를 배열에 추가 (덮어쓰지 않음)
+              const sqlResult = {
+                query: parsed.query || '',
+                explanation: '',
+                label: `결과 ${sqlResults.length + 1}`,
+                description: '',
+                columns,
+                rows,
+                rowCount: rows.length,
+                executionTime: parsed.executionTime || 0,
+              };
+              sqlResults.push(sqlResult);
+
+              // 현재 SQL 데이터도 업데이트 (호환성 유지)
+              currentSqlData = {
+                query: parsed.query || '',
                 explanation: '',
                 columns,
                 rows,
@@ -764,8 +826,8 @@ export class MultiAgentService {
         if (content.includes('execute_sql') || content.includes('SELECT')) {
           // SQL 쿼리 추출
           const sqlMatch = content.match(/```sql\n?([\s\S]*?)```/);
-          if (sqlMatch && !sqlData?.query) {
-            sqlData = sqlData || {
+          if (sqlMatch && !currentSqlData?.query) {
+            currentSqlData = currentSqlData || {
               query: '',
               explanation: '',
               columns: [],
@@ -773,7 +835,7 @@ export class MultiAgentService {
               rowCount: 0,
               executionTime: 0,
             };
-            sqlData.query = sqlMatch[1].trim();
+            currentSqlData.query = sqlMatch[1].trim();
           }
 
           // JSON 데이터 추출
@@ -789,8 +851,21 @@ export class MultiAgentService {
                   label: key,
                 })) as ColumnDefinition[];
 
-                sqlData = {
-                  query: sqlData?.query || '',
+                // 결과를 배열에 추가
+                const sqlResult = {
+                  query: currentSqlData?.query || '',
+                  explanation: '',
+                  label: `결과 ${sqlResults.length + 1}`,
+                  description: '',
+                  columns,
+                  rows,
+                  rowCount: rows.length,
+                  executionTime: 0,
+                };
+                sqlResults.push(sqlResult);
+
+                currentSqlData = {
+                  query: currentSqlData?.query || '',
                   explanation: '',
                   columns,
                   rows,
@@ -805,49 +880,65 @@ export class MultiAgentService {
         }
 
         // Insight Analyst 결과 파싱
-        // Supervisor 메시지 패턴 감지 (계획/안내 메시지 제외)
-        const isSupervisorPlanMessage =
-          content.includes('하겠습니다') ||
-          content.includes('드리겠습니다') ||
-          content.includes('단계별로') ||
-          content.includes('워크플로우를 따라') ||
-          content.includes('전문가에게');
+        // 먼저 followup 내용인지 확인 (followup이면 인사이트 파싱 건너뜀)
+        const isFollowupContent =
+          content.includes('후속 질문') ||
+          content.includes('제안 드린') ||
+          content.includes('추가 질문') ||
+          content.includes('"category": "comparison"') ||
+          content.includes('"category": "deep_dive"') ||
+          content.includes('"category": "expansion"') ||
+          content.includes('"category": "action"') ||
+          content.includes('"autoQuery"');
 
+        // 인사이트 파싱 조건: insight_analyst 출력이고 followup 내용이 아닌 경우
         if (
-          !isSupervisorPlanMessage &&
-          (content.includes('insight') ||
-            content.includes('분석 결과') ||
-            content.includes('주요 발견') ||
-            content.includes('trend') ||
-            content.includes('패턴'))
+          !isFollowupContent &&
+          (content.includes('"items"') ||
+            content.includes('"summary"') ||
+            content.includes('"type": "trend"') ||
+            content.includes('"type": "ranking"') ||
+            content.includes('"type": "comparison"') ||
+            content.includes('"type": "warning"') ||
+            content.includes('"type": "recommendation"') ||
+            content.includes('"type": "opportunity"') ||
+            content.includes('"overallConfidence"'))
         ) {
           // JSON 형식 인사이트 추출
           const jsonMatch = content.match(/```json\n?([\s\S]*?)```/);
           if (jsonMatch) {
             try {
               const parsed = JSON.parse(jsonMatch[1]);
-              if (parsed.summary || parsed.items) {
+              // insight_analyst 출력 구조 검증 (summary와 items가 있고 questions가 없어야 함)
+              if ((parsed.summary || parsed.items) && !parsed.questions) {
+                // 내부 메시지 필터링 적용 (summary에서만)
+                const cleanedSummary = formatInsightText(parsed.summary || '');
+
                 insights = {
-                  summary: parsed.summary || '',
+                  summary: cleanedSummary,
                   items: parsed.items || [],
                   overallConfidence: parsed.overallConfidence || 0.8,
                 };
                 responseType = 'data_with_insight';
+                this.logger.log(
+                  `[${requestId}]   ✅ JSON 인사이트 추출 성공 - summary: ${cleanedSummary.substring(0, 50)}...`,
+                );
               }
             } catch {
               // JSON 파싱 실패
             }
           }
 
-          // 텍스트 인사이트 추출 (JSON이 없고 SQL 데이터가 있는 경우만)
-          if (!insights && content.length > 100 && sqlData) {
+          // 텍스트 인사이트 추출 (JSON이 없고 SQL 데이터가 있는 경우만, followup 아닌 경우만)
+          if (!insights && !isFollowupContent && content.length > 100 && (currentSqlData || sqlResults.length > 0)) {
             // 텍스트에서 주요 내용 추출
             const cleanText = content
               .replace(/```[\s\S]*?```/g, '') // 코드 블록 제거
               .trim()
               .substring(0, 1000); // 더 긴 텍스트 허용
 
-            if (cleanText.length > 50) {
+            // followup 관련 내용 제외
+            if (cleanText.length > 50 && !cleanText.includes('후속 질문') && !cleanText.includes('제안 드린')) {
               // 번호 목록 포맷팅 적용
               const summaryText = formatInsightText(cleanText);
               insights = {
@@ -898,7 +989,8 @@ export class MultiAgentService {
           }
 
           // JSON이 없으면 텍스트에서 차트 유형 추출 시도
-          if (!visualizations && sqlData) {
+          const fallbackSqlData = sqlResults.length > 0 ? sqlResults[0] : currentSqlData;
+          if (!visualizations && fallbackSqlData) {
             const chartTypeMatch = content.match(/(bar|line|pie|horizontal_bar|area|donut|scatter|table)/i);
             if (chartTypeMatch) {
               this.logger.log(`[${requestId}]   📊 텍스트에서 차트 유형 추출: ${chartTypeMatch[1]}`);
@@ -910,14 +1002,23 @@ export class MultiAgentService {
                   type: chartTypeMatch[1].toLowerCase() as 'bar' | 'line' | 'pie' | 'horizontal_bar',
                   title: query,
                   data: {
-                    labels: sqlData.rows.slice(0, 10).map((r, i) => String(Object.values(r)[0] || `항목${i + 1}`)),
+                    labels: fallbackSqlData.rows
+                      .slice(0, 10)
+                      .map((r, i) => String(Object.values(r)[0] || `항목${i + 1}`)),
                     datasets: [
                       {
                         label: '값',
-                        data: sqlData.rows.slice(0, 10).map((r) => {
+                        data: fallbackSqlData.rows.slice(0, 10).map((r) => {
                           const values = Object.values(r);
-                          const numVal = values.find((v) => typeof v === 'number');
-                          return typeof numVal === 'number' ? numVal : 0;
+                          // 숫자 또는 숫자 문자열 찾기
+                          for (const v of values) {
+                            if (typeof v === 'number') return v;
+                            if (typeof v === 'string') {
+                              const parsed = parseFloat(v.replace(/,/g, ''));
+                              if (!isNaN(parsed) && parsed > 0) return parsed;
+                            }
+                          }
+                          return 0;
                         }),
                         backgroundColor: '#3B82F6',
                       },
@@ -953,17 +1054,35 @@ export class MultiAgentService {
       }
     }
 
+    // queryHistory에서 라벨 정보를 sqlResults에 매핑
+    if (queryHistory.length > 0 && sqlResults.length > 0) {
+      // queryHistory의 설명/라벨 정보를 sqlResults에 매핑
+      sqlResults.forEach((result, index) => {
+        const historyItem = queryHistory[index];
+        if (historyItem) {
+          result.label = historyItem.description || historyItem.label || `결과 ${index + 1}`;
+          result.description = historyItem.explanation || '';
+          result.query = historyItem.query || result.query;
+        }
+      });
+    }
+
+    // SQL 데이터 참조 (첫 번째 결과 또는 currentSqlData)
+    const sqlData = sqlResults.length > 0 ? sqlResults[0] : currentSqlData;
+
     // responseType 결정
     if (visualizations && insights) {
       responseType = 'full_analysis';
     } else if (insights) {
       responseType = 'data_with_insight';
-    } else if (sqlData) {
+    } else if (sqlResults.length > 0 || currentSqlData) {
       responseType = 'data_only';
     }
 
     this.logger.log(`[${requestId}] 📊 파싱 결과:`);
-    this.logger.log(`[${requestId}]   - SQL 데이터: ${sqlData ? `${sqlData.rowCount}행` : '없음'}`);
+    this.logger.log(
+      `[${requestId}]   - SQL 데이터: ${sqlResults.length}개 결과 (총 ${sqlResults.reduce((sum, r) => sum + r.rowCount, 0)}행)`,
+    );
     this.logger.log(`[${requestId}]   - 인사이트: ${insights ? '있음' : '없음'}`);
     this.logger.log(`[${requestId}]   - 시각화: ${visualizations ? '있음' : '없음'}`);
     this.logger.log(`[${requestId}]   - 사용된 에이전트: ${agentsUsed.join(', ') || '없음'}`);
@@ -981,9 +1100,52 @@ export class MultiAgentService {
       },
     };
 
-    // 데이터 섹션
-    if (sqlData) {
-      response.data = { sql: sqlData };
+    // 데이터 섹션 - multiSql 구조로 저장 (여러 쿼리 결과 지원)
+    if (sqlResults.length > 0) {
+      const [primary, ...additional] = sqlResults;
+      response.data = {
+        // 호환성을 위해 첫 번째 결과를 sql에도 저장
+        sql: {
+          query: primary.query,
+          explanation: primary.explanation,
+          columns: primary.columns,
+          rows: primary.rows,
+          rowCount: primary.rowCount,
+          executionTime: primary.executionTime,
+          label: primary.label,
+          description: primary.description,
+        },
+        // 다중 결과는 multiSql에 저장
+        multiSql: {
+          totalQueries: sqlResults.length,
+          primary: {
+            query: primary.query,
+            explanation: primary.explanation,
+            columns: primary.columns,
+            rows: primary.rows,
+            rowCount: primary.rowCount,
+            executionTime: primary.executionTime,
+            label: primary.label,
+            description: primary.description,
+          },
+          additional:
+            additional.length > 0
+              ? additional.map((result) => ({
+                  query: result.query,
+                  explanation: result.explanation,
+                  columns: result.columns,
+                  rows: result.rows,
+                  rowCount: result.rowCount,
+                  executionTime: result.executionTime,
+                  label: result.label,
+                  description: result.description,
+                }))
+              : undefined,
+        },
+      };
+    } else if (currentSqlData) {
+      // 단일 결과만 있는 경우 기존 방식 유지
+      response.data = { sql: currentSqlData };
     }
 
     // 인사이트 섹션

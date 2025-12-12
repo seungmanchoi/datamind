@@ -12,9 +12,10 @@ interface Props {
   executionTime: number;
   query?: string;
   title?: string;
+  hideHeader?: boolean;
 }
 
-export default function DataTable({ columns, rows, rowCount, executionTime, query, title }: Props) {
+export default function DataTable({ columns, rows, rowCount, executionTime, query, title, hideHeader }: Props) {
   const [showQuery, setShowQuery] = useState(false);
   const [copied, setCopied] = useState(false);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -97,84 +98,86 @@ export default function DataTable({ columns, rows, rowCount, executionTime, quer
   };
 
   return (
-    <div className="glass rounded-2xl overflow-hidden">
-      {/* 헤더 */}
-      <div className="px-6 py-4 border-b border-white/10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-500/20 p-2 rounded-lg">
-              <Table2 className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-white">데이터 결과</h3>
-              <div className="flex items-center gap-3 text-sm text-slate-400">
-                <span>{rowCount.toLocaleString()}개 행</span>
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {executionTime}ms
-                </span>
+    <div className={cn('overflow-hidden', !hideHeader && 'glass rounded-2xl')}>
+      {/* 헤더 - hideHeader가 true면 숨김 */}
+      {!hideHeader && (
+        <div className="px-6 py-4 border-b border-white/10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-emerald-500/20 p-2 rounded-lg">
+                <Table2 className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">데이터 결과</h3>
+                <div className="flex items-center gap-3 text-sm text-slate-400">
+                  <span>{rowCount.toLocaleString()}개 행</span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {executionTime}ms
+                  </span>
+                </div>
               </div>
             </div>
+
+            {/* 버튼 그룹 */}
+            <div className="flex items-center gap-2">
+              {/* 엑셀 다운로드 버튼 */}
+              {canExport && (
+                <button
+                  onClick={handleExportExcel}
+                  disabled={isExporting}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm',
+                    isExporting
+                      ? 'bg-emerald-500/20 text-emerald-400 cursor-not-allowed'
+                      : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300',
+                  )}
+                  title="엑셀로 다운로드"
+                >
+                  {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  {isExporting ? '다운로드 중...' : '엑셀 다운로드'}
+                </button>
+              )}
+
+              {/* SQL 쿼리 토글 */}
+              {query && (
+                <button
+                  onClick={() => setShowQuery(!showQuery)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10
+                           text-slate-400 hover:text-white rounded-lg transition-colors text-sm"
+                >
+                  <Code className="w-4 h-4" />
+                  SQL 쿼리 {showQuery ? '숨기기' : '보기'}
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* 버튼 그룹 */}
-          <div className="flex items-center gap-2">
-            {/* 엑셀 다운로드 버튼 */}
-            {canExport && (
+          {/* SQL 쿼리 표시 */}
+          {showQuery && query && (
+            <div className="mt-4 relative">
+              <pre className="bg-slate-900/50 p-4 rounded-lg text-sm text-slate-300 overflow-x-auto border border-white/5">
+                <code>{query}</code>
+              </pre>
               <button
-                onClick={handleExportExcel}
-                disabled={isExporting}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-sm',
-                  isExporting
-                    ? 'bg-emerald-500/20 text-emerald-400 cursor-not-allowed'
-                    : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300',
-                )}
-                title="엑셀로 다운로드"
+                onClick={handleCopyQuery}
+                className="absolute top-2 right-2 p-2 bg-white/10 hover:bg-white/20
+                         rounded-lg transition-colors"
+                title="복사"
               >
-                {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                {isExporting ? '다운로드 중...' : '엑셀 다운로드'}
+                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-slate-400" />}
               </button>
-            )}
+            </div>
+          )}
 
-            {/* SQL 쿼리 토글 */}
-            {query && (
-              <button
-                onClick={() => setShowQuery(!showQuery)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10
-                         text-slate-400 hover:text-white rounded-lg transition-colors text-sm"
-              >
-                <Code className="w-4 h-4" />
-                SQL 쿼리 {showQuery ? '숨기기' : '보기'}
-              </button>
-            )}
-          </div>
+          {/* 에러 메시지 */}
+          {exportError && (
+            <div className="mt-4 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <p className="text-sm text-red-400">{exportError}</p>
+            </div>
+          )}
         </div>
-
-        {/* SQL 쿼리 표시 */}
-        {showQuery && query && (
-          <div className="mt-4 relative">
-            <pre className="bg-slate-900/50 p-4 rounded-lg text-sm text-slate-300 overflow-x-auto border border-white/5">
-              <code>{query}</code>
-            </pre>
-            <button
-              onClick={handleCopyQuery}
-              className="absolute top-2 right-2 p-2 bg-white/10 hover:bg-white/20
-                       rounded-lg transition-colors"
-              title="복사"
-            >
-              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-slate-400" />}
-            </button>
-          </div>
-        )}
-
-        {/* 에러 메시지 */}
-        {exportError && (
-          <div className="mt-4 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-            <p className="text-sm text-red-400">{exportError}</p>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* 테이블 */}
       <div className="overflow-x-auto">

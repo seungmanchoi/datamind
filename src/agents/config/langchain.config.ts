@@ -36,11 +36,16 @@ export const createBedrockChatModel = (config: BedrockChatConfig = {}): ChatBedr
 /**
  * Multi-Agent용 경량 모델 생성 (더 빠른 응답)
  * Haiku 모델 사용으로 속도 향상
+ *
+ * 사용 가능한 Haiku 모델 ID:
+ * - Claude 3 Haiku: anthropic.claude-3-haiku-20240307-v1:0 (안정적)
+ * - Claude 3.5 Haiku: us.anthropic.claude-3-5-haiku-20241022-v1:0 (Cross-region)
  */
 export const createBedrockFastModel = (config: BedrockChatConfig = {}): ChatBedrockConverse => {
   const {
-    // Haiku 모델 사용 (더 빠르고 저렴)
-    modelId = process.env.BEDROCK_FAST_MODEL_ID || 'us.anthropic.claude-3-5-haiku-20241022-v1:0',
+    // Claude 3 Haiku 사용 (안정적이고 빠름)
+    // Claude 3.5 Haiku 사용 시: 'us.anthropic.claude-3-5-haiku-20241022-v1:0'
+    modelId = process.env.BEDROCK_FAST_MODEL_ID || 'anthropic.claude-3-haiku-20240307-v1:0',
     region = process.env.AWS_REGION || 'us-east-1',
     temperature = 0,
     maxTokens = 2048,

@@ -140,7 +140,16 @@ export function createChartTools() {
         }
 
         const labels = parsedData.map((item) => String(item[labelField] || 'Unknown'));
-        const values = parsedData.map((item) => Number(item[valueField]) || 0);
+        // 문자열 숫자도 올바르게 파싱 (SQL 결과는 종종 문자열로 반환됨)
+        const values = parsedData.map((item) => {
+          const rawValue = item[valueField];
+          if (rawValue === undefined || rawValue === null) return 0;
+          // 숫자인 경우 그대로 반환
+          if (typeof rawValue === 'number') return rawValue;
+          // 문자열인 경우 숫자로 변환 시도
+          const parsed = parseFloat(String(rawValue).replace(/,/g, ''));
+          return isNaN(parsed) ? 0 : parsed;
+        });
 
         const chartConfig: ChartConfig = {
           id: `chart_${Date.now()}`,

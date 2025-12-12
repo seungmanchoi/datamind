@@ -30,13 +30,13 @@ interface Props {
 }
 
 // 에이전트별 아이콘 및 색상
-const agentConfig: Record<string, { icon: React.ElementType; color: string; bgColor: string }> = {
-  supervisor: { icon: Cpu, color: 'text-violet-400', bgColor: 'bg-violet-500/20' },
-  sql_expert: { icon: Database, color: 'text-blue-400', bgColor: 'bg-blue-500/20' },
-  search_expert: { icon: Search, color: 'text-emerald-400', bgColor: 'bg-emerald-500/20' },
-  insight_analyst: { icon: Sparkles, color: 'text-amber-400', bgColor: 'bg-amber-500/20' },
-  chart_advisor: { icon: BarChart3, color: 'text-pink-400', bgColor: 'bg-pink-500/20' },
-  followup_agent: { icon: MessageSquare, color: 'text-cyan-400', bgColor: 'bg-cyan-500/20' },
+const agentConfig: Record<string, { icon: React.ElementType; color: string; bgColor: string; progressColor: string }> = {
+  supervisor: { icon: Cpu, color: 'text-violet-400', bgColor: 'bg-violet-500/20', progressColor: 'bg-violet-500' },
+  sql_expert: { icon: Database, color: 'text-blue-400', bgColor: 'bg-blue-500/20', progressColor: 'bg-blue-500' },
+  search_expert: { icon: Search, color: 'text-emerald-400', bgColor: 'bg-emerald-500/20', progressColor: 'bg-emerald-500' },
+  insight_analyst: { icon: Sparkles, color: 'text-amber-400', bgColor: 'bg-amber-500/20', progressColor: 'bg-amber-500' },
+  chart_advisor: { icon: BarChart3, color: 'text-pink-400', bgColor: 'bg-pink-500/20', progressColor: 'bg-pink-500' },
+  followup_agent: { icon: MessageSquare, color: 'text-cyan-400', bgColor: 'bg-cyan-500/20', progressColor: 'bg-cyan-500' },
 };
 
 const statusConfig = {
@@ -99,7 +99,7 @@ export default function WorkflowVisualization({ steps, totalDuration }: Props) {
           <div className="text-left">
             <h3 className="text-lg font-semibold text-white">Agent Workflow</h3>
             <p className="text-sm text-slate-400">
-              {uniqueAgents.length}개 에이전트 실행 | {totalDuration.toLocaleString()}ms
+              {uniqueAgents.length}개 에이전트 실행 | {totalDuration.toLocaleString()}ms ({formatDuration(totalDuration)})
             </p>
           </div>
         </div>
@@ -124,6 +124,7 @@ export default function WorkflowVisualization({ steps, totalDuration }: Props) {
                   icon: Bot,
                   color: 'text-slate-400',
                   bgColor: 'bg-slate-500/20',
+                  progressColor: 'bg-slate-500',
                 };
                 const status = statusConfig[step.status];
                 const Icon = config.icon;
@@ -261,6 +262,7 @@ export default function WorkflowVisualization({ steps, totalDuration }: Props) {
                     icon: Bot,
                     color: 'text-slate-400',
                     bgColor: 'bg-slate-500/20',
+                    progressColor: 'bg-slate-500',
                   };
                   const Icon = config.icon;
                   // 같은 에이전트의 모든 스텝 duration 합산
@@ -277,15 +279,17 @@ export default function WorkflowVisualization({ steps, totalDuration }: Props) {
                         </div>
                         <span className="text-xs text-slate-300 truncate">{step.agentDisplayName}</span>
                       </div>
-                      <div className="flex-1 h-4 bg-slate-700/30 rounded-full overflow-hidden">
+                      <div className="flex-1 h-5 bg-slate-700/40 rounded-full overflow-hidden relative">
                         <div
-                          className={cn('h-full rounded-full transition-all duration-500', config.bgColor.replace('/20', '/60'))}
+                          className={cn('h-full rounded-full transition-all duration-500', config.progressColor)}
                           style={{ width: `${Math.min(percentage, 100)}%` }}
                         />
+                        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-white drop-shadow-sm">
+                          {percentage.toFixed(0)}%
+                        </span>
                       </div>
-                      <div className="text-xs text-slate-400 w-20 text-right flex-shrink-0">
+                      <div className="text-xs text-slate-400 w-20 text-right flex-shrink-0 whitespace-nowrap">
                         {formatDuration(agentTotalDuration)}
-                        <span className="text-slate-500 ml-1">({percentage.toFixed(0)}%)</span>
                       </div>
                     </div>
                   );
@@ -300,6 +304,7 @@ export default function WorkflowVisualization({ steps, totalDuration }: Props) {
                   icon: Bot,
                   color: 'text-slate-400',
                   bgColor: 'bg-slate-500/20',
+                  progressColor: 'bg-slate-500',
                 };
                 const Icon = config.icon;
 

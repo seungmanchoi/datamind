@@ -24,6 +24,8 @@ export const API_ENDPOINTS = {
   indexProducts: '/indexing/products',
   health: '/health',
   exportExcel: '/export/excel',
+  exportMultiSheetExcel: '/export/excel/multi-sheet',
+  exportPdf: '/export/pdf',
   checkExportable: '/export/excel/check',
 } as const;
 
@@ -143,6 +145,22 @@ export interface SqlDataSection {
   rows: Record<string, unknown>[];
   rowCount: number;
   executionTime: number;
+  /** 쿼리 라벨 (다중 쿼리 시 시트명으로 사용) */
+  label?: string;
+  /** 쿼리 설명 */
+  description?: string;
+}
+
+/**
+ * 다중 SQL 데이터셋 (여러 쿼리 결과)
+ */
+export interface MultiSqlDataSection {
+  /** 메인 쿼리 결과 (기본 표시용) */
+  primary: SqlDataSection;
+  /** 추가 쿼리 결과들 (비교, 추세, 분포 등) */
+  additional?: SqlDataSection[];
+  /** 전체 쿼리 수 */
+  totalQueries: number;
 }
 
 export interface SearchResultItem {
@@ -161,6 +179,8 @@ export interface SearchDataSection {
 
 export interface DataSection {
   sql?: SqlDataSection;
+  /** 다중 SQL 쿼리 결과 (여러 쿼리 실행 시) */
+  multiSql?: MultiSqlDataSection;
   search?: SearchDataSection;
   aggregations?: Record<string, number | string>;
 }
@@ -217,6 +237,12 @@ export interface QueryHistoryItem {
   rowCount: number;
   success: boolean;
   error?: string;
+  /** 쿼리 라벨 (ex: "상품별 매출") */
+  label?: string;
+  /** 쿼리 설명 (ex: "상품별 총 매출을 조회합니다") */
+  description?: string;
+  /** 결과 설명 */
+  explanation?: string;
   /** RAG를 통해 검색된 few-shot SQL 예제들 */
   fewShotExamples?: FewShotExample[];
 }
@@ -512,6 +538,96 @@ export const api = {
     // Content-Disposition 헤더에서 파일명 추출 시도
     const contentDisposition = response.headers['content-disposition'];
     let filename = `${title}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+      if (filenameMatch) {
+        filename = decodeURIComponent(filenameMatch[1]);
+      }
+    }
+
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
+
+  // 다중 시트 엑셀 파일 다운로드
+  async exportToMultiSheetExcel(
+    title: string,
+    sheets: Array<{
+      sheetName: string;
+      columns: ColumnDefinition[];
+      rows: Record<string, unknown>[];
+      query?: string;
+      description?: string;
+    }>,
+    insightSummary?: string,
+  ): Promise<void> {
+    const response = await apiClient.post(
+      API_ENDPOINTS.exportMultiSheetExcel,
+      { title, sheets, insightSummary },
+      { responseType: 'blob' },
+    );
+
+    // Blob URL 생성하여 다운로드
+    const blob = new Blob([response.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+
+    // Content-Disposition 헤더에서 파일명 추출 시도
+    const contentDisposition = response.headers['content-disposition'];
+    let filename = `${title}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+      if (filenameMatch) {
+        filename = decodeURIComponent(filenameMatch[1]);
+      }
+    }
+
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
+
+  // PDF 파일 다운로드
+  async exportToPdf(
+    title: string,
+    insightSummary: string,
+    insightItems?: Array<{
+      type: string;
+      title: string;
+      content: string;
+      importance: string;
+    }>,
+    dataTable?: {
+      columns: ColumnDefinition[];
+      rows: Record<string, unknown>[];
+    },
+    query?: string,
+  ): Promise<void> {
+    const response = await apiClient.post(
+      API_ENDPOINTS.exportPdf,
+      { title, insightSummary, insightItems, dataTable, query },
+      { responseType: 'blob' },
+    );
+
+    // Blob URL 생성하여 다운로드
+    const blob = new Blob([response.data], {
+      type: 'application/pdf',
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+
+    // Content-Disposition 헤더에서 파일명 추출 시도
+    const contentDisposition = response.headers['content-disposition'];
+    let filename = `${title}_${new Date().toISOString().slice(0, 10)}.pdf`;
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/);
       if (filenameMatch) {
