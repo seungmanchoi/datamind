@@ -60,6 +60,92 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
+ * 필드명을 한글로 변환하는 매핑
+ */
+const FIELD_NAME_MAP: Record<string, string> = {
+  // 카테고리 관련
+  category1_name: '대분류',
+  category2_name: '중분류',
+  category_name: '카테고리',
+  category: '카테고리',
+  // 상품 관련
+  product_name: '상품',
+  product: '상품',
+  product_id: '상품',
+  // 매장 관련
+  market_name: '매장',
+  market: '매장',
+  market_id: '매장',
+  // 시간 관련
+  order_date: '날짜',
+  date: '날짜',
+  month: '월',
+  year: '연도',
+  week: '주',
+  day: '일',
+  // 값 관련
+  total_sales: '매출',
+  sales: '매출',
+  sales_amount: '매출액',
+  final_total_price: '매출',
+  revenue: '매출',
+  amount: '금액',
+  price: '가격',
+  avg_price: '평균가격',
+  count: '수량',
+  quantity: '수량',
+  order_count: '주문수',
+  total_count: '총수량',
+  avg: '평균',
+  sum: '합계',
+  ratio: '비율',
+  rate: '비율',
+  percent: '비중',
+  rank: '순위',
+  // 별칭 (한글)
+  매출액: '매출',
+  매출: '매출',
+  수량: '수량',
+  평균: '평균',
+  비중: '비중',
+  비율: '비율',
+};
+
+/**
+ * 차트 제목 자동 생성
+ * @param labelField 라벨 필드명
+ * @param valueField 값 필드명
+ * @param chartType 차트 유형
+ */
+function generateChartTitle(labelField: string, valueField: string, chartType: string): string {
+  // 필드명을 한글로 변환
+  const labelName =
+    FIELD_NAME_MAP[labelField.toLowerCase()] ||
+    FIELD_NAME_MAP[labelField] ||
+    labelField.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+
+  const valueName =
+    FIELD_NAME_MAP[valueField.toLowerCase()] ||
+    FIELD_NAME_MAP[valueField] ||
+    valueField.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+
+  // 차트 유형에 따른 제목 패턴
+  if (chartType === 'line' || chartType === 'area') {
+    // 시계열: "월별 매출 추이", "날짜별 주문수 추이"
+    return `${labelName}별 ${valueName} 추이`;
+  } else if (chartType === 'pie' || chartType === 'donut') {
+    // 구성비: "카테고리별 매출 비중", "상품별 수량 구성"
+    return `${labelName}별 ${valueName} 구성`;
+  } else if (chartType === 'horizontal_bar') {
+    // 순위: "매출 TOP 10", "상품별 매출 순위"
+    return `${labelName}별 ${valueName}`;
+  } else {
+    // 기본 비교: "카테고리별 매출", "매장별 평균가격"
+    return `${labelName}별 ${valueName}`;
+  }
+}
+
+/**
  * 에이전트 출력에서 작업 요약 생성
  */
 function generateAgentSummary(
@@ -1206,8 +1292,8 @@ export class MultiAgentService {
           chartType = 'pie';
         }
 
-        // 차트 제목 결정 (결과 라벨 사용)
-        const chartTitle = result.label || result.description || `결과 ${i + 1}`;
+        // 차트 제목 자동 생성 (필드명 기반)
+        const chartTitle = generateChartTitle(labelField, valueField, chartType);
 
         const chart: ChartConfig = {
           id: `fallback_chart_${i}_${Date.now()}`,
@@ -1284,13 +1370,16 @@ export class MultiAgentService {
           chartType = 'pie';
         }
 
+        // 차트 제목 자동 생성 (필드명 기반)
+        const chartTitle = generateChartTitle(labelField, valueField, chartType);
+
         visualizations = {
           recommended: true,
           reason: '데이터 기반 자동 시각화',
           primary: {
             id: `fallback_chart_${Date.now()}`,
             type: chartType,
-            title: query,
+            title: chartTitle,
             data: {
               labels: chartLabels,
               datasets: [
@@ -1312,7 +1401,7 @@ export class MultiAgentService {
           extras: [],
         };
 
-        this.logger.log(`[${requestId}]   ✅ 폴백 차트 생성 완료 - type: ${chartType}`);
+        this.logger.log(`[${requestId}]   ✅ 폴백 차트 생성 완료 - type: ${chartType}, title: ${chartTitle}`);
       }
     }
 
