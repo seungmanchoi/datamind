@@ -41,7 +41,9 @@ export default function ResponseContainer({ response, onFollowUpClick, onRetry }
       )}
 
       {/* SQL 쿼리 히스토리 */}
-      {workflow && workflow.queryHistory.length > 0 && <SqlQueryHistory queries={workflow.queryHistory} />}
+      {workflow && workflow.queryHistory.length > 0 && (
+        <SqlQueryHistory queries={workflow.queryHistory} userQuestion={meta.query} />
+      )}
 
       {/* 내보내기 버튼 (엑셀, PDF) */}
       {(data || insights) && (

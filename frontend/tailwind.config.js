@@ -31,11 +31,16 @@ export default {
         'float': 'float 10s ease-in-out infinite',
         'float-reverse': 'float 12s ease-in-out infinite reverse',
         'spin-slow': 'spin 3s linear infinite',
+        'slide-in-right': 'slideInRight 0.3s ease-out forwards',
       },
       keyframes: {
         float: {
           '0%, 100%': { transform: 'translate(0, 0)' },
           '50%': { transform: 'translate(30px, 50px)' },
+        },
+        slideInRight: {
+          '0%': { transform: 'translateX(100%)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
         },
       },
     },

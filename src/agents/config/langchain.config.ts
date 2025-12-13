@@ -15,9 +15,9 @@ export interface BedrockChatConfig {
  */
 export const createBedrockChatModel = (config: BedrockChatConfig = {}): ChatBedrockConverse => {
   const {
-    // Cross-region inference profile ID 사용 (us. prefix)
-    modelId = process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
-    region = process.env.AWS_REGION || 'us-east-1',
+    // Claude Sonnet 4.5 (최신, SQL 생성 및 인사이트 분석에 최적)
+    modelId = process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
+    region = process.env.BEDROCK_REGION || 'us-east-1',
     temperature = 0,
     maxTokens = 4096,
   } = config;
@@ -35,18 +35,18 @@ export const createBedrockChatModel = (config: BedrockChatConfig = {}): ChatBedr
 
 /**
  * Multi-Agent용 경량 모델 생성 (더 빠른 응답)
- * Haiku 모델 사용으로 속도 향상
+ * Claude Haiku 4.5 사용으로 속도와 품질 모두 향상
  *
  * 사용 가능한 Haiku 모델 ID:
- * - Claude 3 Haiku: anthropic.claude-3-haiku-20240307-v1:0 (안정적)
- * - Claude 3.5 Haiku: us.anthropic.claude-3-5-haiku-20241022-v1:0 (Cross-region)
+ * - Claude 3 Haiku: anthropic.claude-3-haiku-20240307-v1:0 (레거시)
+ * - Claude 3.5 Haiku: us.anthropic.claude-3-5-haiku-20241022-v1:0
+ * - Claude Haiku 4.5: us.anthropic.claude-haiku-4-5-20251001-v1:0 (최신, 권장)
  */
 export const createBedrockFastModel = (config: BedrockChatConfig = {}): ChatBedrockConverse => {
   const {
-    // Claude 3 Haiku 사용 (안정적이고 빠름)
-    // Claude 3.5 Haiku 사용 시: 'us.anthropic.claude-3-5-haiku-20241022-v1:0'
-    modelId = process.env.BEDROCK_FAST_MODEL_ID || 'anthropic.claude-3-haiku-20240307-v1:0',
-    region = process.env.AWS_REGION || 'us-east-1',
+    // Claude Haiku 4.5 (최신, 차트/후속질문에 최적)
+    modelId = process.env.BEDROCK_FAST_MODEL_ID || 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+    region = process.env.BEDROCK_REGION || 'us-east-1',
     temperature = 0,
     maxTokens = 2048,
   } = config;

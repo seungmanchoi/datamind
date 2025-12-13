@@ -1,5 +1,7 @@
 import {
+  AlertCircle,
   BookOpen,
+  Brain,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -8,23 +10,35 @@ import {
   Code2,
   Copy,
   Database,
+  Loader2,
   Rows3,
   Sparkles,
   XCircle,
 } from 'lucide-react';
 import { useState } from 'react';
 
-import type { QueryHistoryItem } from '@/lib/api';
+import { useToast } from '@/components/common/Toast';
+import { api, type QueryHistoryItem, type QueryLearningResponse } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 interface Props {
   queries: QueryHistoryItem[];
+  /** 사용자 질문 (실패 쿼리 학습에 사용) */
+  userQuestion?: string;
 }
 
-export default function SqlQueryHistory({ queries }: Props) {
+export default function SqlQueryHistory({ queries, userQuestion }: Props) {
+  const { showToast } = useToast();
   const [isExpanded, setIsExpanded] = useState(true);
   const [expandedQuery, setExpandedQuery] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [learningId, setLearningId] = useState<string | null>(null);
+  const [checkingDuplicateId, setCheckingDuplicateId] = useState<string | null>(null);
+  const [learnedQueryIds, setLearnedQueryIds] = useState<Set<string>>(new Set());
+  const [learningResult, setLearningResult] = useState<{
+    id: string;
+    result: QueryLearningResponse;
+  } | null>(null);
 
   if (queries.length === 0) {
     return null;
@@ -37,6 +51,71 @@ export default function SqlQueryHistory({ queries }: Props) {
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleLearnFailedQuery = async (item: QueryHistoryItem) => {
+    if (!userQuestion) {
+      showToast('error', '사용자 질문이 필요합니다.');
+      return;
+    }
+
+    // 1. 중복 검증 단계
+    setCheckingDuplicateId(item.id);
+    try {
+      const duplicateCheck = await api.checkDuplicateEmbedding(item.query);
+
+      if (duplicateCheck.exists) {
+        showToast(
+          'warning',
+          `이미 유사한 쿼리가 임베딩되어 있습니다. (유사도: ${((duplicateCheck.similarQueries?.[0]?.score || 0) * 100).toFixed(1)}%)`,
+          5000,
+        );
+        setCheckingDuplicateId(null);
+        return;
+      }
+    } catch (err) {
+      console.warn('Duplicate check failed, proceeding with learning:', err);
+      // 중복 검증 실패해도 학습은 진행
+    }
+    setCheckingDuplicateId(null);
+
+    // 2. 학습 진행
+    setLearningId(item.id);
+    setLearningResult(null);
+
+    try {
+      const response = await api.learnFailedQuery({
+        originalQuery: userQuestion,
+        failedSql: item.query,
+        errorMessage: item.error || 'Unknown error',
+        userQuestion: userQuestion,
+      });
+
+      setLearningResult({ id: item.id, result: response });
+
+      // 학습 결과에 따른 토스트 메시지
+      if (response.success) {
+        showToast('success', response.message || '쿼리가 성공적으로 학습되었습니다!');
+        // 학습 성공한 쿼리 ID 추가
+        setLearnedQueryIds((prev) => new Set([...prev, item.id]));
+      } else {
+        showToast('warning', response.message || '자동 보정에 실패했습니다. 관리자 검토가 필요합니다.', 5000);
+      }
+    } catch (err) {
+      console.error('Failed to learn query:', err);
+      const errorMessage = err instanceof Error ? err.message : '알 수 없는 오류';
+      showToast('error', `학습 요청 실패: ${errorMessage}`);
+      setLearningResult({
+        id: item.id,
+        result: {
+          success: false,
+          message: `학습 요청 중 오류가 발생했습니다: ${errorMessage}`,
+          attempts: 0,
+        },
+      });
+    } finally {
+      setLearningId(null);
     }
   };
 
@@ -185,6 +264,47 @@ export default function SqlQueryHistory({ queries }: Props) {
                         <Copy className="w-4 h-4 text-slate-400" />
                       )}
                     </button>
+                    {/* 실패 쿼리 학습 버튼 - 학습 성공 시 숨김 */}
+                    {!item.success && userQuestion && !learnedQueryIds.has(item.id) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLearnFailedQuery(item);
+                        }}
+                        disabled={learningId === item.id || checkingDuplicateId === item.id}
+                        className={cn(
+                          'px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 text-xs font-medium',
+                          learningId === item.id || checkingDuplicateId === item.id
+                            ? 'bg-violet-500/20 text-violet-400 cursor-wait'
+                            : 'bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 hover:text-violet-300',
+                        )}
+                        title="AI가 쿼리를 분석하고 수정하여 학습합니다"
+                      >
+                        {checkingDuplicateId === item.id ? (
+                          <>
+                            <AlertCircle className="w-3.5 h-3.5 animate-pulse" />
+                            중복 검증 중...
+                          </>
+                        ) : learningId === item.id ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            학습 중...
+                          </>
+                        ) : (
+                          <>
+                            <Brain className="w-3.5 h-3.5" />
+                            실패 쿼리 학습
+                          </>
+                        )}
+                      </button>
+                    )}
+                    {/* 학습 완료 표시 */}
+                    {learnedQueryIds.has(item.id) && (
+                      <span className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-medium flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        학습 완료
+                      </span>
+                    )}
                     {isQueryExpanded ? (
                       <ChevronUp className="w-4 h-4 text-slate-400" />
                     ) : (
@@ -269,6 +389,67 @@ export default function SqlQueryHistory({ queries }: Props) {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-rose-400 mb-1">SQL 실행 오류</p>
                             <p className="text-sm text-rose-300/80 whitespace-pre-wrap break-words">{item.error}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 학습 결과 표시 */}
+                    {learningResult && learningResult.id === item.id && (
+                      <div
+                        className={cn(
+                          'p-4 rounded-lg border',
+                          learningResult.result.success
+                            ? 'bg-emerald-500/10 border-emerald-500/20'
+                            : 'bg-amber-500/10 border-amber-500/20',
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          {learningResult.result.success ? (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                          ) : (
+                            <Brain className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0 space-y-2">
+                            <p
+                              className={cn(
+                                'text-sm font-medium',
+                                learningResult.result.success ? 'text-emerald-400' : 'text-amber-400',
+                              )}
+                            >
+                              {learningResult.result.success ? '✓ 쿼리 학습 완료' : '⚠ 자동 보정 실패'}
+                            </p>
+                            <p className="text-sm text-slate-300">{learningResult.result.message}</p>
+
+                            {learningResult.result.embedded && (
+                              <div className="flex items-center gap-2 text-xs text-emerald-400/80">
+                                <Sparkles className="w-3 h-3" />
+                                <span>RAG에 성공적으로 임베딩되었습니다</span>
+                              </div>
+                            )}
+
+                            {learningResult.result.failedQueryId && (
+                              <div className="flex items-center gap-2 text-xs text-amber-400/80">
+                                <Database className="w-3 h-3" />
+                                <span>실패 쿼리로 저장되었습니다 (시도: {learningResult.result.attempts}회)</span>
+                              </div>
+                            )}
+
+                            {learningResult.result.correctedSql && (
+                              <div className="mt-2">
+                                <p className="text-xs text-slate-400 mb-1">보정된 쿼리:</p>
+                                <div className="bg-slate-900/80 rounded p-2 overflow-x-auto">
+                                  <pre className="text-xs font-mono whitespace-pre-wrap break-words">
+                                    <code
+                                      dangerouslySetInnerHTML={{
+                                        __html: formatSql(learningResult.result.correctedSql),
+                                      }}
+                                      className="text-slate-300"
+                                    />
+                                  </pre>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

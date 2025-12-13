@@ -27,6 +27,10 @@ export const API_ENDPOINTS = {
   exportMultiSheetExcel: '/export/excel/multi-sheet',
   exportPdf: '/export/pdf',
   checkExportable: '/export/excel/check',
+  // Query Learning
+  queryLearningLearn: '/api/query-learning/learn',
+  queryLearningFailed: '/api/query-learning/failed',
+  queryLearningSetup: '/api/query-learning/setup',
 } as const;
 
 // ============================================
@@ -390,6 +394,62 @@ export interface FewShotExample {
   score?: number;
 }
 
+// ============================================
+// Query Learning 타입 정의
+// ============================================
+
+export interface QueryLearningRequest {
+  originalQuery: string;
+  failedSql: string;
+  errorMessage: string;
+  userQuestion: string;
+}
+
+export interface QueryLearningResponse {
+  success: boolean;
+  message: string;
+  correctedSql?: string;
+  description?: string;
+  attempts: number;
+  embedded?: boolean; // RAG 임베딩 여부
+  failedQueryId?: string; // 실패 시 저장된 ID
+}
+
+export interface FailedQueryItem {
+  id: string;
+  originalQuery: string;
+  failedSql: string;
+  errorMessage: string;
+  userQuestion: string;
+  attempts: Array<{
+    sql: string;
+    error: string;
+    timestamp: string;
+  }>;
+  status: 'pending' | 'resolved' | 'ignored';
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string;
+  resolvedSql?: string;
+}
+
+export interface FailedQueriesResponse {
+  data: FailedQueryItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface DuplicateCheckResponse {
+  exists: boolean;
+  similarQueries?: Array<{
+    description: string;
+    sql: string;
+    score: number;
+  }>;
+}
+
 export interface ExampleItem {
   id: string;
   description: string;
@@ -640,6 +700,76 @@ export const api = {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
+  },
+
+  // ============================================
+  // Query Learning API
+  // ============================================
+
+  // 실패 쿼리 학습 요청
+  async learnFailedQuery(request: QueryLearningRequest): Promise<QueryLearningResponse> {
+    const response = await apiClient.post<QueryLearningResponse>(API_ENDPOINTS.queryLearningLearn, request);
+    return response.data;
+  },
+
+  // 중복 쿼리 임베딩 확인
+  async checkDuplicateEmbedding(sql: string): Promise<DuplicateCheckResponse> {
+    const response = await apiClient.post<DuplicateCheckResponse>('/api/query-learning/check-duplicate', { sql });
+    return response.data;
+  },
+
+  // 실패 쿼리 목록 조회
+  async getFailedQueries(
+    page: number = 1,
+    limit: number = 20,
+    status?: 'pending' | 'resolved' | 'ignored',
+  ): Promise<FailedQueriesResponse> {
+    const response = await apiClient.get<FailedQueriesResponse>(API_ENDPOINTS.queryLearningFailed, {
+      params: { page, limit, status },
+    });
+    return response.data;
+  },
+
+  // 특정 실패 쿼리 조회
+  async getFailedQuery(id: string): Promise<FailedQueryItem> {
+    const response = await apiClient.get<FailedQueryItem>(`${API_ENDPOINTS.queryLearningFailed}/${id}`);
+    return response.data;
+  },
+
+  // 실패 쿼리 해결 처리
+  async resolveFailedQuery(
+    id: string,
+    resolvedSql: string,
+    description: string,
+    embedToRag: boolean = true,
+  ): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>(
+      `${API_ENDPOINTS.queryLearningFailed}/${id}/resolve`,
+      { resolvedSql, description, embedToRag },
+    );
+    return response.data;
+  },
+
+  // 실패 쿼리 무시 처리
+  async ignoreFailedQuery(id: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>(
+      `${API_ENDPOINTS.queryLearningFailed}/${id}/ignore`,
+    );
+    return response.data;
+  },
+
+  // 실패 쿼리 삭제
+  async deleteFailedQuery(id: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.delete<{ success: boolean; message: string }>(
+      `${API_ENDPOINTS.queryLearningFailed}/${id}`,
+    );
+    return response.data;
+  },
+
+  // Query Learning 인덱스 초기화
+  async setupQueryLearning(): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post<{ success: boolean; message: string }>(API_ENDPOINTS.queryLearningSetup);
+    return response.data;
   },
 };
 

@@ -1,8 +1,8 @@
-import { BarChart, Box, History, MessageSquare, Search, Users } from 'lucide-react';
+import { AlertTriangle, BarChart, Box, History, MessageSquare, Search, Users } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
-type PageType = 'query' | 'multi-agent' | 'search' | 'embedding' | 'history' | 'metrics';
+type PageType = 'query' | 'multi-agent' | 'search' | 'embedding' | 'failed-queries' | 'history' | 'metrics';
 
 interface NavigationProps {
   currentPage: PageType;
@@ -14,6 +14,7 @@ const navItems = [
   { id: 'multi-agent' as const, label: 'Multi-Agent', icon: Users },
   { id: 'search' as const, label: '시맨틱 검색', icon: Search },
   { id: 'embedding' as const, label: 'AI 학습', icon: Box },
+  { id: 'failed-queries' as const, label: '실패 쿼리', icon: AlertTriangle },
   { id: 'history' as const, label: '히스토리', icon: History },
   { id: 'metrics' as const, label: '메트릭', icon: BarChart },
 ];

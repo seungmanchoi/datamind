@@ -644,35 +644,38 @@ export class MultiAgentService {
                     }
                   }
 
-                  // 성공한 쿼리 결과 처리
-                  if (msgContent.includes('"success":true') && msgContent.includes('"data":')) {
-                    try {
-                      const parsed = JSON.parse(msgContent);
-                      // 마지막 쿼리의 결과 업데이트
-                      if (queryHistory.length > 0) {
-                        const lastQuery = queryHistory[queryHistory.length - 1];
-                        lastQuery.success = parsed.success;
-                        lastQuery.rowCount = parsed.rowCount || 0;
-                        lastQuery.executionTime = parsed.executionTime || 0;
-                      }
-                    } catch {
-                      // JSON 파싱 실패
-                    }
-                  }
+                  // SQL 실행 결과 처리 (성공/실패 모두 JSON 파싱 기반)
+                  try {
+                    const parsed = JSON.parse(msgContent);
 
-                  // 실패한 쿼리 결과 처리 (에러 메시지 캡처)
-                  if (msgContent.includes('"error":true')) {
-                    try {
-                      const parsed = JSON.parse(msgContent);
+                    // 성공한 쿼리 결과 처리
+                    if (parsed.success === true && parsed.data !== undefined) {
                       if (queryHistory.length > 0) {
-                        const lastQuery = queryHistory[queryHistory.length - 1];
-                        lastQuery.success = false;
-                        lastQuery.error = parsed.message || '알 수 없는 SQL 오류';
-                        this.logger.warn(`[${requestId}]   ⚠️ SQL 실행 실패: ${lastQuery.error}`);
+                        // 가장 최근에 추가된 미처리 쿼리 찾기
+                        const pendingQuery = [...queryHistory].reverse().find((q) => !q.success && !q.error);
+                        const targetQuery = pendingQuery || queryHistory[queryHistory.length - 1];
+                        targetQuery.success = true;
+                        targetQuery.rowCount = parsed.rowCount || 0;
+                        targetQuery.executionTime = parsed.executionTime || 0;
+                        this.logger.log(
+                          `[${requestId}]   ✅ SQL 실행 성공: ${targetQuery.rowCount}행, ${targetQuery.executionTime}ms`,
+                        );
                       }
-                    } catch {
-                      // JSON 파싱 실패
                     }
+
+                    // 실패한 쿼리 결과 처리
+                    if (parsed.error === true) {
+                      if (queryHistory.length > 0) {
+                        // 가장 최근에 추가된 미처리 쿼리 찾기
+                        const pendingQuery = [...queryHistory].reverse().find((q) => !q.success && !q.error);
+                        const targetQuery = pendingQuery || queryHistory[queryHistory.length - 1];
+                        targetQuery.success = false;
+                        targetQuery.error = parsed.message || '알 수 없는 SQL 오류';
+                        this.logger.warn(`[${requestId}]   ⚠️ SQL 실행 실패: ${targetQuery.error}`);
+                      }
+                    }
+                  } catch {
+                    // JSON 파싱 실패 - 일반 텍스트 메시지이므로 무시
                   }
                 }
               } else {
